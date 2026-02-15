@@ -49,6 +49,18 @@ class Enemy {
             padding: { left: 1, right: 1, top: 0, bottom: 0 }
         }).setOrigin(0.5).setDepth(59);
 
+        // Health bar
+        const barWidth = type === 'abomination' ? 20 : 14;
+        this._hpBarWidth = barWidth;
+        this.hpBarBg = scene.add.rectangle(
+            this.sprite.x, this.sprite.y - 8,
+            barWidth, 2, 0x333333
+        ).setOrigin(0.5).setDepth(58);
+        this.hpBarFg = scene.add.rectangle(
+            this.sprite.x, this.sprite.y - 8,
+            barWidth, 2, 0x44cc44
+        ).setOrigin(0.5).setDepth(59);
+
         // Stats based on type, scaled by difficulty
         const dm = difficultyMult;
         // Speed escalation: enemies start at half speed and scale up with difficulty
@@ -134,6 +146,20 @@ class Enemy {
         if (!this.alive) return;
 
         this.label.setPosition(this.sprite.x, this.sprite.y - 12);
+
+        // Update health bar
+        const hpRatio = Math.max(0, this.hp / this.maxHp);
+        const barW = this._hpBarWidth * hpRatio;
+        this.hpBarBg.setPosition(this.sprite.x, this.sprite.y - 7);
+        this.hpBarFg.setPosition(
+            this.sprite.x - (this._hpBarWidth - barW) / 2,
+            this.sprite.y - 7
+        );
+        this.hpBarFg.width = barW;
+        // Color: green > yellow > red
+        if (hpRatio > 0.6) this.hpBarFg.setFillStyle(0x44cc44);
+        else if (hpRatio > 0.3) this.hpBarFg.setFillStyle(0xcccc22);
+        else this.hpBarFg.setFillStyle(0xcc2222);
 
         // Update animation based on state
         this._updateEnemyAnimation();
@@ -389,6 +415,8 @@ class Enemy {
 
         // Animated death: shrink + fade out, then destroy
         this.label.destroy();
+        if (this.hpBarBg) this.hpBarBg.destroy();
+        if (this.hpBarFg) this.hpBarFg.destroy();
         this.sprite.setTint(0xff0000);
         this._playEnemyAnim('death');
         this.scene.tweens.add({
