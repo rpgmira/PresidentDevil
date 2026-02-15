@@ -46,6 +46,16 @@ class CombatSystem {
 
         if (!closest) return;
 
+        // Face the nearest enemy when attacking
+        const angle = Phaser.Math.Angle.Between(pos.x, pos.y, closest.sprite.x, closest.sprite.y);
+        const absCos = Math.abs(Math.cos(angle));
+        const absSin = Math.abs(Math.sin(angle));
+        if (absCos >= absSin) {
+            player.facing = Math.cos(angle) > 0 ? 'right' : 'left';
+        } else {
+            player.facing = Math.sin(angle) > 0 ? 'down' : 'up';
+        }
+
         // Deal damage (with passive melee multiplier)
         const weapon = player.meleeWeapon;
         const meleeDmg = Math.floor(weapon.damage * player.getPassiveMult('meleeDamage'));
