@@ -6,6 +6,28 @@ A top-down roguelike built with [Phaser 3](https://phaser.io/) — explore a pro
 
 ![Status](https://img.shields.io/badge/status-prototype-orange) ![Phaser](https://img.shields.io/badge/engine-Phaser%203.80-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
+## Characters
+
+<p align="center">
+  <img src="sprites/player.png" alt="Player" width="96" />
+  &nbsp;&nbsp;
+  <img src="sprites/crawler.png" alt="Crawler" width="96" />
+  &nbsp;&nbsp;
+  <img src="sprites/lurker.png" alt="Lurker" width="96" />
+  &nbsp;&nbsp;
+  <img src="sprites/brute.png" alt="Brute" width="96" />
+  &nbsp;&nbsp;
+  <img src="sprites/shade.png" alt="Shade" width="96" />
+  &nbsp;&nbsp;
+  <img src="sprites/abomination.png" alt="Abomination" width="96" />
+</p>
+
+<p align="center">
+  <b>Player</b> &nbsp;·&nbsp; <b>Crawler</b> &nbsp;·&nbsp; <b>Lurker</b> &nbsp;·&nbsp; <b>Brute</b> &nbsp;·&nbsp; <b>Shade</b> &nbsp;·&nbsp; <b>Abomination</b>
+</p>
+
+> All sprites are generated at runtime as pixel art — no external assets required.
+
 ## Story
 
 The President of the country is, in fact, the Devil. You play as his personal assistant — a woman who discovers the horrifying truth and must survive the chaos unfolding inside the presidential compound. She's resourceful, not a soldier, improvising with whatever she can find.
@@ -89,6 +111,7 @@ Then visit **http://localhost:8080**
 │       ├── HUDScene.js      # Overlay HUD (zoom-independent)
 │       ├── DeathScene.js    # Death screen with stats
 │       └── VictoryScene.js  # Victory screen
+├── sprites/                # Character PNGs for README
 ├── PLAN.md                 # Full development roadmap
 └── REFERENCE.png           # Concept art reference
 ```
