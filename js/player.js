@@ -6,17 +6,26 @@ class Player {
     constructor(scene, x, y) {
         this.scene = scene;
 
-        // Create player sprite (placeholder rectangle)
-        this.sprite = scene.add.rectangle(
+        // Generate sprite texture if not yet generated
+        if (!scene.textures.exists('player_sprite')) {
+            SPRITE_GEN.generate(scene);
+        }
+
+        // Create player sprite from generated spritesheet
+        this.sprite = scene.add.sprite(
             x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
             y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
-            CONFIG.TILE_SIZE - 2,
-            CONFIG.TILE_SIZE - 2,
-            CONFIG.COLORS.PLAYER
+            'player_sprite',
+            'r0_f0'
         );
         this.sprite.setDepth(60);
         scene.physics.add.existing(this.sprite);
+        this.sprite.body.setSize(CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
         this.sprite.body.setCollideWorldBounds(false);
+
+        // Animation state
+        this._currentAnim = '';
+        this._animLocked = false;  // true during attack/hurt anims
 
         // Stats
         this.hp = CONFIG.PLAYER_MAX_HP;
@@ -117,6 +126,43 @@ class Player {
 
         // Movement
         this._handleMovement(dungeon);
+
+        // Update animation
+        this._updateAnimation();
+    }
+
+    _updateAnimation() {
+        if (this._animLocked) return;
+
+        let animKey;
+        if (this.isAttacking) {
+            animKey = 'player_attack_' + this.facing;
+            this._playAnim(animKey, true);
+            return;
+        }
+
+        if (this.moving) {
+            animKey = 'player_walk_' + this.facing;
+        } else {
+            animKey = 'player_idle_' + this.facing;
+        }
+        this._playAnim(animKey);
+    }
+
+    _playAnim(key, lock) {
+        if (this._currentAnim === key) return;
+        this._currentAnim = key;
+
+        if (lock) {
+            this._animLocked = true;
+            this.sprite.play(key);
+            this.sprite.once('animationcomplete', () => {
+                this._animLocked = false;
+                this._currentAnim = '';
+            });
+        } else {
+            this.sprite.play(key, true);
+        }
     }
 
     _handleMovement(dungeon) {
@@ -254,11 +300,14 @@ class Player {
         this.invulnerable = true;
         this.invulnTimer = CONFIG.PLAYER_INVULN_TIME;
 
-        // Red flash
-        this.sprite.setFillStyle(0xff0000);
+        // Red flash (tint-based)
+        this.sprite.setTint(0xff0000);
         this.scene.time.delayedCall(100, () => {
-            if (this.alive) this.sprite.setFillStyle(CONFIG.COLORS.PLAYER);
+            if (this.alive) this.sprite.clearTint();
         });
+
+        // Play hurt animation
+        this._playAnim('player_hurt', true);
 
         if (this.hp <= 0) {
             this.hp = 0;
@@ -273,8 +322,8 @@ class Player {
     die() {
         this.alive = false;
 
-        // Dramatic death animation: flash red, shake camera, shrink+spin
-        this.sprite.setFillStyle(CONFIG.COLORS.BLOOD);
+        // Play death animation
+        this.sprite.setTint(0xff4444);
         if (this.scene.cameras && this.scene.cameras.main) {
             this.scene.cameras.main.shake(400, 0.02);
             this.scene.cameras.main.flash(300, 180, 0, 0);
@@ -283,14 +332,16 @@ class Player {
             this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
             this.scene.particles.bloodSplatter(this.sprite.x, this.sprite.y, 12);
         }
+
+        this._currentAnim = '';
+        this._animLocked = true;
+        this.sprite.play('player_death');
+
         this.scene.tweens.add({
             targets: this.sprite,
-            scaleX: 0.2,
-            scaleY: 0.2,
-            alpha: 0.1,
-            angle: 360,
-            duration: 1200,
-            ease: 'Power3'
+            alpha: 0.2,
+            duration: 1500,
+            ease: 'Power2'
         });
         this.scene.time.delayedCall(2000, () => {
             this.scene.scene.stop('HUDScene');
@@ -406,10 +457,10 @@ class Player {
         // Consume the repair kit
         this.inventory[repairSlotIndex] = null;
 
-        // Flash green
-        this.sprite.setFillStyle(0x44ff44);
+        // Flash green (tint-based)
+        this.sprite.setTint(0x44ff44);
         this.scene.time.delayedCall(200, () => {
-            if (this.alive) this.sprite.setFillStyle(CONFIG.COLORS.PLAYER);
+            if (this.alive) this.sprite.clearTint();
         });
     }
 
