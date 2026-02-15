@@ -17,47 +17,52 @@ const ENEMY_SPRITE_GEN = {
         crawler: {
             frameW: 16, frameH: 16, cols: 2, rows: 5,
             pal: {
-                body: '#44aa44', bodyLight: '#66cc66', bodyDark: '#337733',
-                eye: '#ffff44', pupil: '#222222', claw: '#88cc88',
-                belly: '#55bb55', outline: '#1a331a', blood: '#aa1111',
+                body: '#44aa44', bodyLight: '#66cc66', bodyDark: '#226622',
+                eye: '#ffff00', pupil: '#111111', claw: '#22aa22',
+                belly: '#88dd88', outline: '#113311', blood: '#cc1111',
+                fang: '#ffffff',
             }
         },
         lurker: {
             frameW: 16, frameH: 16, cols: 2, rows: 5,
             pal: {
-                body: '#9944cc', bodyLight: '#bb66ee', bodyDark: '#773399',
-                eye: '#ff4444', pupil: '#220000', tendril: '#aa55dd',
-                hood: '#553388', outline: '#1a0a2a', blood: '#aa1111',
+                body: '#8833bb', bodyLight: '#aa55dd', bodyDark: '#552288',
+                eye: '#ff3333', pupil: '#ffcccc', tendril: '#9944cc',
+                hood: '#442266', outline: '#220044', blood: '#cc1111',
+                inner: '#331155',
             }
         },
         brute: {
             frameW: 16, frameH: 16, cols: 2, rows: 5,
             pal: {
-                body: '#aa3333', bodyLight: '#cc5555', bodyDark: '#882222',
-                eye: '#ffaa00', pupil: '#222222', fist: '#cc4444',
-                armor: '#663333', outline: '#1a0a0a', blood: '#880000',
+                body: '#bb3333', bodyLight: '#dd5555', bodyDark: '#881818',
+                eye: '#ffcc00', pupil: '#111111', fist: '#ffaa77',
+                armor: '#553333', outline: '#220000', blood: '#880000',
+                teeth: '#ffffff', belt: '#443322',
             }
         },
         shade: {
             frameW: 16, frameH: 16, cols: 2, rows: 5,
             pal: {
-                body: '#2a2a55', bodyLight: '#3a3a77', bodyDark: '#1a1a33',
-                eye: '#8888ff', pupil: '#ffffff', wisp: '#4444aa',
-                cloak: '#222244', outline: '#0a0a1a', blood: '#3333aa',
+                body: '#3344aa', bodyLight: '#5566cc', bodyDark: '#222266',
+                eye: '#aabbff', pupil: '#ffffff', wisp: '#4455bb',
+                cloak: '#1a1a44', outline: '#0a0a22', blood: '#3333aa',
+                glow: '#8899ff',
             }
         },
         abomination: {
             frameW: 20, frameH: 20, cols: 2, rows: 5,
             pal: {
                 body: '#cc2222', bodyLight: '#ee4444', bodyDark: '#881111',
-                eye: '#ffff00', pupil: '#000000', claw: '#ff6666',
-                armor: '#881818', mouth: '#440000', outline: '#220000',
-                blood: '#660000', glow: '#ff8800',
+                eye: '#ffff00', pupil: '#000000', claw: '#ff8866',
+                armor: '#661111', mouth: '#330000', outline: '#220000',
+                blood: '#660000', glow: '#ff8800', teeth: '#ffffff',
             }
         },
     },
 
     generate(scene) {
+        console.log('[EnemySpriteGen] Generating enemy spritesheets...');
         for (const [typeName, cfg] of Object.entries(this.TYPES)) {
             const texKey = `enemy_${typeName}`;
             const W = cfg.frameW * cfg.cols;
@@ -93,13 +98,21 @@ const ENEMY_SPRITE_GEN = {
 
             // Define animations
             this._defineAnims(scene, texKey, typeName);
+            console.log(`[EnemySpriteGen] ${typeName}: ${W}x${H} canvas, texture=${texKey}, frames registered`);
         }
+        console.log('[EnemySpriteGen] All enemy spritesheets generated successfully.');
     },
 
     // ── Pixel helper ──
     _px(ctx, x, y, color) {
         ctx.fillStyle = color;
         ctx.fillRect(x, y, 1, 1);
+    },
+
+    // ── Fill rect helper ──
+    _rect(ctx, x, y, w, h, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
     },
 
     // ── Main sheet drawer ──
@@ -114,7 +127,8 @@ const ENEMY_SPRITE_GEN = {
     },
 
     // ═══════════════════════════════════════════
-    // CRAWLER — Small, skittering insectoid
+    // CRAWLER — Skittering insectoid spider
+    // Fills frame: x 2-13, y 3-13 (12px wide, 11px tall)
     // ═══════════════════════════════════════════
     _drawCrawlerSheet(ctx, cfg) {
         const p = cfg.pal;
@@ -123,17 +137,52 @@ const ENEMY_SPRITE_GEN = {
         const px = (x, y, c) => this._px(ctx, x, y, c);
 
         const drawCrawler = (ox, oy, legPhase, mouthOpen) => {
-            // Body (oval blob)
-            px(ox+6, oy+5, p.bodyDark); px(ox+7, oy+5, p.body); px(ox+8, oy+5, p.body); px(ox+9, oy+5, p.bodyDark);
-            px(ox+5, oy+6, p.bodyDark); px(ox+6, oy+6, p.body); px(ox+7, oy+6, p.bodyLight); px(ox+8, oy+6, p.bodyLight); px(ox+9, oy+6, p.body); px(ox+10, oy+6, p.bodyDark);
-            px(ox+5, oy+7, p.body); px(ox+6, oy+7, p.bodyLight); px(ox+7, oy+7, p.eye); px(ox+8, oy+7, p.belly); px(ox+9, oy+7, p.eye); px(ox+10, oy+7, p.body);
-            px(ox+5, oy+8, p.body); px(ox+6, oy+8, p.body); px(ox+7, oy+8, mouthOpen ? p.outline : p.body); px(ox+8, oy+8, mouthOpen ? p.outline : p.body); px(ox+9, oy+8, p.body); px(ox+10, oy+8, p.body);
-            px(ox+6, oy+9, p.bodyDark); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.bodyDark);
-            // Legs (3 pairs)
+            // Outline/shadow base
+            px(ox+6, oy+4, p.outline); px(ox+7, oy+4, p.outline); px(ox+8, oy+4, p.outline); px(ox+9, oy+4, p.outline);
+
+            // Body top
+            px(ox+5, oy+5, p.outline); px(ox+6, oy+5, p.bodyDark); px(ox+7, oy+5, p.body); px(ox+8, oy+5, p.body); px(ox+9, oy+5, p.bodyDark); px(ox+10, oy+5, p.outline);
+
+            // Body with eyes - row 6
+            px(ox+4, oy+6, p.outline); px(ox+5, oy+6, p.bodyDark); px(ox+6, oy+6, p.body); px(ox+7, oy+6, p.bodyLight); px(ox+8, oy+6, p.bodyLight); px(ox+9, oy+6, p.body); px(ox+10, oy+6, p.bodyDark); px(ox+11, oy+6, p.outline);
+
+            // Eyes row
+            px(ox+4, oy+7, p.outline); px(ox+5, oy+7, p.body); px(ox+6, oy+7, p.eye); px(ox+7, oy+7, p.pupil); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.eye); px(ox+10, oy+7, p.pupil); px(ox+11, oy+7, p.body); px(ox+12, oy+7, p.outline);
+
+            // Mouth row
+            px(ox+4, oy+8, p.outline); px(ox+5, oy+8, p.body); px(ox+6, oy+8, p.bodyLight);
+            px(ox+7, oy+8, mouthOpen ? p.fang : p.belly); px(ox+8, oy+8, mouthOpen ? p.outline : p.belly);
+            px(ox+9, oy+8, mouthOpen ? p.fang : p.belly);
+            px(ox+10, oy+8, p.bodyLight); px(ox+11, oy+8, p.body); px(ox+12, oy+8, p.outline);
+
+            // Lower body
+            px(ox+4, oy+9, p.outline); px(ox+5, oy+9, p.bodyDark); px(ox+6, oy+9, p.body); px(ox+7, oy+9, p.belly); px(ox+8, oy+9, p.belly); px(ox+9, oy+9, p.body); px(ox+10, oy+9, p.bodyDark); px(ox+11, oy+9, p.outline);
+
+            // Bottom edge
+            px(ox+5, oy+10, p.outline); px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.body); px(ox+8, oy+10, p.body); px(ox+9, oy+10, p.bodyDark); px(ox+10, oy+10, p.outline);
+
+            // Abdomen
+            px(ox+6, oy+11, p.outline); px(ox+7, oy+11, p.bodyDark); px(ox+8, oy+11, p.bodyDark); px(ox+9, oy+11, p.outline);
+
+            // Legs (4 pairs, alternating phase)
             const lo = legPhase ? 1 : 0;
-            px(ox+4, oy+6+lo, p.claw); px(ox+11, oy+6+lo, p.claw);
-            px(ox+4, oy+8-lo, p.claw); px(ox+11, oy+8-lo, p.claw);
-            px(ox+3, oy+7, p.claw); px(ox+12, oy+7, p.claw);
+            // Front legs
+            px(ox+3, oy+6-lo, p.claw); px(ox+3, oy+7-lo, p.outline);
+            px(ox+13, oy+6-lo, p.claw); px(ox+13, oy+7-lo, p.outline);
+            // Mid-front legs
+            px(ox+2, oy+7+lo, p.claw); px(ox+3, oy+8, p.outline);
+            px(ox+13, oy+8, p.outline); px(ox+14, oy+7+lo, p.claw);
+            // Mid-back legs
+            px(ox+2, oy+9-lo, p.claw); px(ox+3, oy+9, p.outline);
+            px(ox+13, oy+9, p.outline); px(ox+14, oy+9-lo, p.claw);
+            // Back legs
+            px(ox+3, oy+10+lo, p.claw); px(ox+4, oy+11, p.outline);
+            px(ox+11, oy+11, p.outline); px(ox+12, oy+10+lo, p.claw);
+
+            // Fangs/pincers
+            if (mouthOpen) {
+                px(ox+6, oy+9, p.fang); px(ox+9, oy+9, p.fang);
+            }
         };
 
         // Row 0: idle
@@ -145,18 +194,21 @@ const ENEMY_SPRITE_GEN = {
         // Row 2: attack
         drawCrawler(0, FH*2, false, true);
         drawCrawler(FW, FH*2, true, true);
-        // Row 3: hurt
-        drawCrawler(0, FH*3, true, false);
-        // Row 4: death
+        // Row 3: hurt (recoil)
+        drawCrawler(0, FH*3, true, true);
+        // Row 4: death frame 1
         drawCrawler(0, FH*4, false, false);
-        // Flat splat for death frame 2
-        px(FW+5, FH*4+8, p.bodyDark); px(FW+6, FH*4+8, p.body); px(FW+7, FH*4+8, p.body);
-        px(FW+8, FH*4+8, p.body); px(FW+9, FH*4+8, p.body); px(FW+10, FH*4+8, p.bodyDark);
-        px(FW+6, FH*4+9, p.blood); px(FW+7, FH*4+9, p.blood); px(FW+8, FH*4+9, p.blood); px(FW+9, FH*4+9, p.blood);
+        // Row 4 frame 2: squished splat
+        this._rect(ctx, FW+4, FH*4+8, 8, 2, p.bodyDark);
+        this._rect(ctx, FW+5, FH*4+9, 6, 2, p.outline);
+        this._rect(ctx, FW+6, FH*4+10, 4, 1, p.blood);
+        px(FW+6, FH*4+8, p.body); px(FW+9, FH*4+8, p.body);
+        px(FW+3, FH*4+9, p.claw); px(FW+12, FH*4+9, p.claw);
     },
 
     // ═══════════════════════════════════════════
-    // LURKER — Tall, hooded, ghostly stalker
+    // LURKER — Hooded shadow stalker
+    // Fills frame: x 3-12, y 1-14 (10px wide, 14px tall)
     // ═══════════════════════════════════════════
     _drawLurkerSheet(ctx, cfg) {
         const p = cfg.pal;
@@ -165,26 +217,39 @@ const ENEMY_SPRITE_GEN = {
         const px = (x, y, c) => this._px(ctx, x, y, c);
 
         const drawLurker = (ox, oy, sway, tendrils) => {
-            // Hood/head
-            px(ox+6, oy+2, p.hood); px(ox+7, oy+2, p.hood); px(ox+8, oy+2, p.hood); px(ox+9, oy+2, p.hood);
-            px(ox+5, oy+3, p.hood); px(ox+6, oy+3, p.bodyDark); px(ox+7, oy+3, p.bodyDark); px(ox+8, oy+3, p.bodyDark); px(ox+9, oy+3, p.bodyDark); px(ox+10, oy+3, p.hood);
-            px(ox+5, oy+4, p.hood); px(ox+6, oy+4, p.body); px(ox+7, oy+4, p.eye); px(ox+8, oy+4, p.bodyDark); px(ox+9, oy+4, p.eye); px(ox+10, oy+4, p.hood);
-            px(ox+6, oy+5, p.bodyDark); px(ox+7, oy+5, p.bodyDark); px(ox+8, oy+5, p.bodyDark); px(ox+9, oy+5, p.bodyDark);
-            // Body (robe)
-            const sx = sway;
-            px(ox+6+sx, oy+6, p.body); px(ox+7+sx, oy+6, p.bodyLight); px(ox+8+sx, oy+6, p.bodyLight); px(ox+9+sx, oy+6, p.body);
-            px(ox+5+sx, oy+7, p.body); px(ox+6+sx, oy+7, p.body); px(ox+7+sx, oy+7, p.bodyLight); px(ox+8+sx, oy+7, p.bodyLight); px(ox+9+sx, oy+7, p.body); px(ox+10+sx, oy+7, p.body);
-            px(ox+5+sx, oy+8, p.bodyDark); px(ox+6+sx, oy+8, p.body); px(ox+7+sx, oy+8, p.body); px(ox+8+sx, oy+8, p.body); px(ox+9+sx, oy+8, p.body); px(ox+10+sx, oy+8, p.bodyDark);
-            px(ox+5+sx, oy+9, p.bodyDark); px(ox+6+sx, oy+9, p.bodyDark); px(ox+7+sx, oy+9, p.body); px(ox+8+sx, oy+9, p.body); px(ox+9+sx, oy+9, p.bodyDark); px(ox+10+sx, oy+9, p.bodyDark);
-            px(ox+6+sx, oy+10, p.bodyDark); px(ox+7+sx, oy+10, p.body); px(ox+8+sx, oy+10, p.body); px(ox+9+sx, oy+10, p.bodyDark);
-            // Tendrils
+            const s = sway;
+            // Hood peak
+            px(ox+7, oy+1, p.outline); px(ox+8, oy+1, p.outline);
+            // Hood top
+            px(ox+6, oy+2, p.outline); px(ox+7, oy+2, p.hood); px(ox+8, oy+2, p.hood); px(ox+9, oy+2, p.outline);
+            // Hood sides + face shadow
+            px(ox+5, oy+3, p.outline); px(ox+6, oy+3, p.hood); px(ox+7, oy+3, p.inner); px(ox+8, oy+3, p.inner); px(ox+9, oy+3, p.hood); px(ox+10, oy+3, p.outline);
+            // Face with eyes
+            px(ox+5, oy+4, p.outline); px(ox+6, oy+4, p.hood); px(ox+7, oy+4, p.eye); px(ox+8, oy+4, p.inner); px(ox+9, oy+4, p.eye); px(ox+10, oy+4, p.hood); px(ox+11, oy+4, p.outline);
+            // Lower face / chin
+            px(ox+5, oy+5, p.outline); px(ox+6, oy+5, p.bodyDark); px(ox+7, oy+5, p.inner); px(ox+8, oy+5, p.inner); px(ox+9, oy+5, p.inner); px(ox+10, oy+5, p.bodyDark); px(ox+11, oy+5, p.outline);
+
+            // Shoulders
+            px(ox+4+s, oy+6, p.outline); px(ox+5+s, oy+6, p.bodyDark); px(ox+6+s, oy+6, p.body); px(ox+7+s, oy+6, p.bodyLight); px(ox+8+s, oy+6, p.bodyLight); px(ox+9+s, oy+6, p.body); px(ox+10+s, oy+6, p.bodyDark); px(ox+11+s, oy+6, p.outline);
+            // Upper robe
+            px(ox+4+s, oy+7, p.outline); px(ox+5+s, oy+7, p.body); px(ox+6+s, oy+7, p.bodyLight); px(ox+7+s, oy+7, p.bodyLight); px(ox+8+s, oy+7, p.bodyLight); px(ox+9+s, oy+7, p.bodyLight); px(ox+10+s, oy+7, p.body); px(ox+11+s, oy+7, p.outline);
+            // Mid robe
+            px(ox+4+s, oy+8, p.outline); px(ox+5+s, oy+8, p.bodyDark); px(ox+6+s, oy+8, p.body); px(ox+7+s, oy+8, p.body); px(ox+8+s, oy+8, p.body); px(ox+9+s, oy+8, p.body); px(ox+10+s, oy+8, p.bodyDark); px(ox+11+s, oy+8, p.outline);
+            // Lower robe
+            px(ox+4+s, oy+9, p.outline); px(ox+5+s, oy+9, p.bodyDark); px(ox+6+s, oy+9, p.bodyDark); px(ox+7+s, oy+9, p.body); px(ox+8+s, oy+9, p.body); px(ox+9+s, oy+9, p.bodyDark); px(ox+10+s, oy+9, p.bodyDark); px(ox+11+s, oy+9, p.outline);
+            // Robe bottom
+            px(ox+5+s, oy+10, p.outline); px(ox+6+s, oy+10, p.bodyDark); px(ox+7+s, oy+10, p.body); px(ox+8+s, oy+10, p.body); px(ox+9+s, oy+10, p.bodyDark); px(ox+10+s, oy+10, p.outline);
+            // Wispy hem
+            px(ox+5+s, oy+11, p.outline); px(ox+6+s, oy+11, p.bodyDark); px(ox+7+s, oy+11, p.bodyDark); px(ox+8+s, oy+11, p.bodyDark); px(ox+9+s, oy+11, p.bodyDark); px(ox+10+s, oy+11, p.outline);
+            // Trailing wisps
+            px(ox+6+s, oy+12, p.outline); px(ox+7+s, oy+12, p.bodyDark); px(ox+8+s, oy+12, p.bodyDark); px(ox+9+s, oy+12, p.outline);
+            px(ox+7+s, oy+13, p.outline); px(ox+8+s, oy+13, p.outline);
+
+            // Tendrils (attack arms)
             if (tendrils) {
-                px(ox+4, oy+7, p.tendril); px(ox+3, oy+8, p.tendril);
-                px(ox+11, oy+7, p.tendril); px(ox+12, oy+8, p.tendril);
+                px(ox+3, oy+6, p.tendril); px(ox+2, oy+7, p.tendril); px(ox+1, oy+8, p.eye);
+                px(ox+12, oy+6, p.tendril); px(ox+13, oy+7, p.tendril); px(ox+14, oy+8, p.eye);
             }
-            // Bottom wisps
-            px(ox+6+sx, oy+11, p.bodyDark); px(ox+9+sx, oy+11, p.bodyDark);
-            px(ox+7+sx, oy+12, p.outline); px(ox+8+sx, oy+12, p.outline);
         };
 
         // Row 0: idle
@@ -198,16 +263,19 @@ const ENEMY_SPRITE_GEN = {
         drawLurker(FW, FH*2, 0, true);
         // Row 3: hurt
         drawLurker(0, FH*3, -1, false);
-        // Row 4: death
+        // Row 4: death frame 1
         drawLurker(0, FH*4, 0, false);
-        // Collapsed pile
-        px(FW+5, FH*4+7, p.hood); px(FW+6, FH*4+7, p.hood); px(FW+7, FH*4+7, p.bodyDark); px(FW+8, FH*4+7, p.bodyDark); px(FW+9, FH*4+7, p.hood); px(FW+10, FH*4+7, p.hood);
-        px(FW+5, FH*4+8, p.body); px(FW+6, FH*4+8, p.body); px(FW+7, FH*4+8, p.body); px(FW+8, FH*4+8, p.body); px(FW+9, FH*4+8, p.body); px(FW+10, FH*4+8, p.body);
-        px(FW+6, FH*4+9, p.blood); px(FW+7, FH*4+9, p.blood); px(FW+8, FH*4+9, p.blood); px(FW+9, FH*4+9, p.blood);
+        // Row 4 frame 2: collapsed pile
+        this._rect(ctx, FW+4, FH*4+8, 8, 1, p.hood);
+        this._rect(ctx, FW+4, FH*4+9, 8, 2, p.bodyDark);
+        this._rect(ctx, FW+5, FH*4+10, 6, 1, p.body);
+        this._rect(ctx, FW+6, FH*4+11, 4, 1, p.blood);
+        px(FW+7, FH*4+8, p.eye); px(FW+9, FH*4+8, p.eye);
     },
 
     // ═══════════════════════════════════════════
-    // BRUTE — Big, hulking tank with fists
+    // BRUTE — Hulking muscular tank
+    // Fills frame: x 1-14, y 1-12 (14px wide, 12px tall)
     // ═══════════════════════════════════════════
     _drawBruteSheet(ctx, cfg) {
         const p = cfg.pal;
@@ -216,26 +284,47 @@ const ENEMY_SPRITE_GEN = {
         const px = (x, y, c) => this._px(ctx, x, y, c);
 
         const drawBrute = (ox, oy, armUp, mouthOpen) => {
-            // Head
-            px(ox+6, oy+2, p.bodyDark); px(ox+7, oy+2, p.body); px(ox+8, oy+2, p.body); px(ox+9, oy+2, p.bodyDark);
-            px(ox+5, oy+3, p.body); px(ox+6, oy+3, p.bodyLight); px(ox+7, oy+3, p.eye); px(ox+8, oy+3, p.bodyLight); px(ox+9, oy+3, p.eye); px(ox+10, oy+3, p.body);
-            px(ox+6, oy+4, p.body); px(ox+7, oy+4, mouthOpen ? p.outline : p.body); px(ox+8, oy+4, mouthOpen ? p.outline : p.body); px(ox+9, oy+4, p.body);
+            // Head top
+            px(ox+6, oy+1, p.outline); px(ox+7, oy+1, p.bodyDark); px(ox+8, oy+1, p.bodyDark); px(ox+9, oy+1, p.outline);
+            // Forehead
+            px(ox+5, oy+2, p.outline); px(ox+6, oy+2, p.body); px(ox+7, oy+2, p.bodyLight); px(ox+8, oy+2, p.bodyLight); px(ox+9, oy+2, p.body); px(ox+10, oy+2, p.outline);
+            // Eyes
+            px(ox+5, oy+3, p.outline); px(ox+6, oy+3, p.body); px(ox+7, oy+3, p.eye); px(ox+8, oy+3, p.bodyLight); px(ox+9, oy+3, p.eye); px(ox+10, oy+3, p.body); px(ox+11, oy+3, p.outline);
+            // Jaw / mouth
+            px(ox+5, oy+4, p.outline); px(ox+6, oy+4, p.bodyDark);
+            px(ox+7, oy+4, mouthOpen ? p.teeth : p.body);
+            px(ox+8, oy+4, mouthOpen ? p.outline : p.body);
+            px(ox+9, oy+4, mouthOpen ? p.teeth : p.body);
+            px(ox+10, oy+4, p.bodyDark); px(ox+11, oy+4, p.outline);
             // Neck
-            px(ox+7, oy+5, p.body); px(ox+8, oy+5, p.body);
-            // Torso (wide)
-            px(ox+4, oy+6, p.armor); px(ox+5, oy+6, p.body); px(ox+6, oy+6, p.bodyLight); px(ox+7, oy+6, p.bodyLight); px(ox+8, oy+6, p.bodyLight); px(ox+9, oy+6, p.bodyLight); px(ox+10, oy+6, p.body); px(ox+11, oy+6, p.armor);
-            px(ox+4, oy+7, p.armor); px(ox+5, oy+7, p.body); px(ox+6, oy+7, p.body); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.body); px(ox+10, oy+7, p.body); px(ox+11, oy+7, p.armor);
-            px(ox+5, oy+8, p.bodyDark); px(ox+6, oy+8, p.body); px(ox+7, oy+8, p.body); px(ox+8, oy+8, p.body); px(ox+9, oy+8, p.body); px(ox+10, oy+8, p.bodyDark);
-            px(ox+5, oy+9, p.armor); px(ox+6, oy+9, p.bodyDark); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.bodyDark); px(ox+10, oy+9, p.armor);
-            // Arms (thick)
-            const armY = armUp ? 4 : 6;
-            px(ox+3, oy+armY, p.body); px(ox+3, oy+armY+1, p.body); px(ox+3, oy+armY+2, p.fist); px(ox+2, oy+armY+2, p.fist);
-            px(ox+12, oy+armY, p.body); px(ox+12, oy+armY+1, p.body); px(ox+12, oy+armY+2, p.fist); px(ox+13, oy+armY+2, p.fist);
+            px(ox+6, oy+5, p.outline); px(ox+7, oy+5, p.body); px(ox+8, oy+5, p.body); px(ox+9, oy+5, p.body); px(ox+10, oy+5, p.outline);
+
+            // Massive torso - upper
+            px(ox+3, oy+6, p.outline); px(ox+4, oy+6, p.armor); px(ox+5, oy+6, p.body); px(ox+6, oy+6, p.bodyLight); px(ox+7, oy+6, p.bodyLight); px(ox+8, oy+6, p.bodyLight); px(ox+9, oy+6, p.bodyLight); px(ox+10, oy+6, p.body); px(ox+11, oy+6, p.armor); px(ox+12, oy+6, p.outline);
+            // Torso - mid
+            px(ox+3, oy+7, p.outline); px(ox+4, oy+7, p.armor); px(ox+5, oy+7, p.body); px(ox+6, oy+7, p.bodyLight); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.bodyLight); px(ox+10, oy+7, p.body); px(ox+11, oy+7, p.armor); px(ox+12, oy+7, p.outline);
+            // Torso - lower
+            px(ox+3, oy+8, p.outline); px(ox+4, oy+8, p.bodyDark); px(ox+5, oy+8, p.body); px(ox+6, oy+8, p.body); px(ox+7, oy+8, p.bodyLight); px(ox+8, oy+8, p.bodyLight); px(ox+9, oy+8, p.body); px(ox+10, oy+8, p.body); px(ox+11, oy+8, p.bodyDark); px(ox+12, oy+8, p.outline);
+            // Belt
+            px(ox+4, oy+9, p.outline); px(ox+5, oy+9, p.belt); px(ox+6, oy+9, p.belt); px(ox+7, oy+9, p.belt); px(ox+8, oy+9, p.belt); px(ox+9, oy+9, p.belt); px(ox+10, oy+9, p.belt); px(ox+11, oy+9, p.outline);
+
+            // Arms
+            const armY = armUp ? 3 : 6;
+            // Left arm
+            px(ox+2, oy+armY, p.outline); px(ox+2, oy+armY+1, p.body); px(ox+2, oy+armY+2, p.bodyDark);
+            px(ox+1, oy+armY+2, p.fist); px(ox+1, oy+armY+3, p.fist);
+            // Right arm
+            px(ox+13, oy+armY, p.outline); px(ox+13, oy+armY+1, p.body); px(ox+13, oy+armY+2, p.bodyDark);
+            px(ox+14, oy+armY+2, p.fist); px(ox+14, oy+armY+3, p.fist);
+
             // Legs
-            px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.bodyDark);
-            px(ox+9, oy+10, p.bodyDark); px(ox+10, oy+10, p.bodyDark);
-            px(ox+6, oy+11, p.bodyDark); px(ox+7, oy+11, p.outline);
-            px(ox+9, oy+11, p.bodyDark); px(ox+10, oy+11, p.outline);
+            px(ox+5, oy+10, p.outline); px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.bodyDark);
+            px(ox+9, oy+10, p.bodyDark); px(ox+10, oy+10, p.bodyDark); px(ox+11, oy+10, p.outline);
+            px(ox+5, oy+11, p.outline); px(ox+6, oy+11, p.body); px(ox+7, oy+11, p.outline);
+            px(ox+9, oy+11, p.outline); px(ox+10, oy+11, p.body); px(ox+11, oy+11, p.outline);
+            // Feet
+            px(ox+5, oy+12, p.outline); px(ox+6, oy+12, p.bodyDark); px(ox+7, oy+12, p.outline);
+            px(ox+9, oy+12, p.outline); px(ox+10, oy+12, p.bodyDark); px(ox+11, oy+12, p.outline);
         };
 
         // Row 0: idle
@@ -249,17 +338,19 @@ const ENEMY_SPRITE_GEN = {
         drawBrute(FW, FH*2, false, true);
         // Row 3: hurt
         drawBrute(0, FH*3, false, true);
-        // Row 4: death
+        // Row 4: death frame 1
         drawBrute(0, FH*4, false, false);
-        // Collapsed heap
-        px(FW+4, FH*4+7, p.armor); px(FW+5, FH*4+7, p.body); px(FW+6, FH*4+7, p.body); px(FW+7, FH*4+7, p.bodyLight);
-        px(FW+8, FH*4+7, p.bodyLight); px(FW+9, FH*4+7, p.body); px(FW+10, FH*4+7, p.body); px(FW+11, FH*4+7, p.armor);
-        px(FW+5, FH*4+8, p.body); px(FW+6, FH*4+8, p.body); px(FW+7, FH*4+8, p.body); px(FW+8, FH*4+8, p.body); px(FW+9, FH*4+8, p.body); px(FW+10, FH*4+8, p.body);
-        px(FW+6, FH*4+9, p.blood); px(FW+7, FH*4+9, p.blood); px(FW+8, FH*4+9, p.blood); px(FW+9, FH*4+9, p.blood);
+        // Row 4 frame 2: collapsed heap
+        this._rect(ctx, FW+3, FH*4+9, 10, 1, p.armor);
+        this._rect(ctx, FW+4, FH*4+10, 8, 2, p.bodyDark);
+        this._rect(ctx, FW+5, FH*4+11, 6, 1, p.body);
+        this._rect(ctx, FW+6, FH*4+12, 4, 1, p.blood);
+        px(FW+7, FH*4+9, p.eye); px(FW+9, FH*4+9, p.eye);
     },
 
     // ═══════════════════════════════════════════
-    // SHADE — Ghostly, translucent wraith
+    // SHADE — Ghostly wraith
+    // Fills frame: x 3-12, y 2-14 (10px wide, 13px tall)
     // ═══════════════════════════════════════════
     _drawShadeSheet(ctx, cfg) {
         const p = cfg.pal;
@@ -268,23 +359,33 @@ const ENEMY_SPRITE_GEN = {
         const px = (x, y, c) => this._px(ctx, x, y, c);
 
         const drawShade = (ox, oy, phase, attacking) => {
-            const drift = phase;
+            const d = phase;
+            // Crown/head top
+            px(ox+7, oy+2+d, p.outline); px(ox+8, oy+2+d, p.outline);
             // Ethereal head
-            px(ox+7, oy+3+drift, p.cloak); px(ox+8, oy+3+drift, p.cloak);
-            px(ox+6, oy+4+drift, p.cloak); px(ox+7, oy+4+drift, p.bodyLight); px(ox+8, oy+4+drift, p.bodyLight); px(ox+9, oy+4+drift, p.cloak);
-            px(ox+6, oy+5+drift, p.body); px(ox+7, oy+5+drift, p.eye); px(ox+8, oy+5+drift, p.eye); px(ox+9, oy+5+drift, p.body);
-            px(ox+7, oy+6+drift, p.bodyDark); px(ox+8, oy+6+drift, p.bodyDark);
-            // Wispy body
-            px(ox+6, oy+7, p.body); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.body);
-            px(ox+5, oy+8, p.bodyDark); px(ox+6, oy+8, p.body); px(ox+7, oy+8, p.body); px(ox+8, oy+8, p.body); px(ox+9, oy+8, p.body); px(ox+10, oy+8, p.bodyDark);
-            px(ox+6, oy+9, p.bodyDark); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.bodyDark);
-            // Trailing wisps (no legs — floating)
-            px(ox+5, oy+10, p.wisp); px(ox+7, oy+10, p.bodyDark); px(ox+8, oy+10, p.bodyDark); px(ox+10, oy+10, p.wisp);
-            px(ox+6, oy+11, p.wisp); px(ox+9, oy+11, p.wisp);
+            px(ox+6, oy+3+d, p.outline); px(ox+7, oy+3+d, p.cloak); px(ox+8, oy+3+d, p.cloak); px(ox+9, oy+3+d, p.outline);
+            // Face
+            px(ox+5, oy+4+d, p.outline); px(ox+6, oy+4+d, p.bodyDark); px(ox+7, oy+4+d, p.bodyLight); px(ox+8, oy+4+d, p.bodyLight); px(ox+9, oy+4+d, p.bodyDark); px(ox+10, oy+4+d, p.outline);
+            // Eyes
+            px(ox+5, oy+5+d, p.outline); px(ox+6, oy+5+d, p.body); px(ox+7, oy+5+d, p.eye); px(ox+8, oy+5+d, p.glow); px(ox+9, oy+5+d, p.eye); px(ox+10, oy+5+d, p.body); px(ox+11, oy+5+d, p.outline);
+            // Lower face
+            px(ox+6, oy+6+d, p.outline); px(ox+7, oy+6+d, p.bodyDark); px(ox+8, oy+6+d, p.bodyDark); px(ox+9, oy+6+d, p.outline);
+
+            // Wispy body (no drift offset)
+            px(ox+5, oy+7, p.outline); px(ox+6, oy+7, p.body); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.body); px(ox+10, oy+7, p.outline);
+            px(ox+4, oy+8, p.outline); px(ox+5, oy+8, p.bodyDark); px(ox+6, oy+8, p.body); px(ox+7, oy+8, p.bodyLight); px(ox+8, oy+8, p.bodyLight); px(ox+9, oy+8, p.body); px(ox+10, oy+8, p.bodyDark); px(ox+11, oy+8, p.outline);
+            px(ox+4, oy+9, p.outline); px(ox+5, oy+9, p.bodyDark); px(ox+6, oy+9, p.body); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.body); px(ox+10, oy+9, p.bodyDark); px(ox+11, oy+9, p.outline);
+            // Lower body narrows
+            px(ox+5, oy+10, p.outline); px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.body); px(ox+8, oy+10, p.body); px(ox+9, oy+10, p.bodyDark); px(ox+10, oy+10, p.outline);
+            // Trailing wisps
+            px(ox+4, oy+11, p.wisp); px(ox+6, oy+11, p.outline); px(ox+7, oy+11, p.bodyDark); px(ox+8, oy+11, p.bodyDark); px(ox+9, oy+11, p.outline); px(ox+11, oy+11, p.wisp);
+            px(ox+3, oy+12, p.wisp); px(ox+7, oy+12, p.outline); px(ox+8, oy+12, p.outline); px(ox+12, oy+12, p.wisp);
+            px(ox+5, oy+13, p.wisp); px(ox+10, oy+13, p.wisp);
+
             // Attack claws
             if (attacking) {
-                px(ox+4, oy+7, p.wisp); px(ox+3, oy+8, p.wisp); px(ox+2, oy+9, p.eye);
-                px(ox+11, oy+7, p.wisp); px(ox+12, oy+8, p.wisp); px(ox+13, oy+9, p.eye);
+                px(ox+3, oy+7, p.wisp); px(ox+2, oy+8, p.glow); px(ox+1, oy+9, p.eye);
+                px(ox+12, oy+7, p.wisp); px(ox+13, oy+8, p.glow); px(ox+14, oy+9, p.eye);
             }
         };
 
@@ -299,16 +400,18 @@ const ENEMY_SPRITE_GEN = {
         drawShade(FW, FH*2, -1, true);
         // Row 3: hurt
         drawShade(0, FH*3, 1, false);
-        // Row 4: death
+        // Row 4: death frame 1
         drawShade(0, FH*4, 0, false);
-        // Dissipating wisps
-        px(FW+6, FH*4+8, p.wisp); px(FW+8, FH*4+7, p.wisp); px(FW+10, FH*4+8, p.wisp);
-        px(FW+5, FH*4+9, p.bodyDark); px(FW+7, FH*4+9, p.bodyDark); px(FW+9, FH*4+9, p.bodyDark); px(FW+11, FH*4+9, p.bodyDark);
-        px(FW+6, FH*4+10, p.blood); px(FW+8, FH*4+10, p.blood); px(FW+10, FH*4+10, p.blood);
+        // Row 4 frame 2: dissipating wisps
+        px(FW+5, FH*4+8, p.wisp); px(FW+7, FH*4+7, p.wisp); px(FW+10, FH*4+8, p.wisp);
+        px(FW+4, FH*4+9, p.bodyDark); px(FW+6, FH*4+9, p.outline); px(FW+8, FH*4+9, p.bodyDark); px(FW+11, FH*4+9, p.outline);
+        px(FW+5, FH*4+10, p.outline); px(FW+7, FH*4+10, p.blood); px(FW+9, FH*4+10, p.outline);
+        px(FW+6, FH*4+11, p.blood); px(FW+8, FH*4+11, p.blood); px(FW+10, FH*4+11, p.blood);
     },
 
     // ═══════════════════════════════════════════
-    // ABOMINATION — Large, terrifying boss
+    // ABOMINATION — Large, terrifying boss monster
+    // Fills frame: x 1-18, y 1-15 (18px wide, 15px tall)
     // ═══════════════════════════════════════════
     _drawAbominationSheet(ctx, cfg) {
         const p = cfg.pal;
@@ -317,34 +420,54 @@ const ENEMY_SPRITE_GEN = {
         const px = (x, y, c) => this._px(ctx, x, y, c);
 
         const drawAbom = (ox, oy, armState, mouthOpen) => {
-            // Massive head (wider)
-            px(ox+7, oy+2, p.bodyDark); px(ox+8, oy+2, p.body); px(ox+9, oy+2, p.body); px(ox+10, oy+2, p.body); px(ox+11, oy+2, p.bodyDark);
-            px(ox+6, oy+3, p.body); px(ox+7, oy+3, p.bodyLight); px(ox+8, oy+3, p.bodyLight); px(ox+9, oy+3, p.bodyLight); px(ox+10, oy+3, p.bodyLight); px(ox+11, oy+3, p.body); px(ox+12, oy+3, p.bodyDark);
-            // Eyes (3 eyes!)
-            px(ox+6, oy+4, p.bodyDark); px(ox+7, oy+4, p.eye); px(ox+8, oy+4, p.bodyLight); px(ox+9, oy+4, p.eye); px(ox+10, oy+4, p.bodyLight); px(ox+11, oy+4, p.eye); px(ox+12, oy+4, p.bodyDark);
+            // Head top horns
+            px(ox+6, oy+1, p.outline); px(ox+7, oy+1, p.bodyDark);
+            px(ox+12, oy+1, p.bodyDark); px(ox+13, oy+1, p.outline);
+            // Head
+            px(ox+6, oy+2, p.outline); px(ox+7, oy+2, p.bodyDark); px(ox+8, oy+2, p.body); px(ox+9, oy+2, p.body); px(ox+10, oy+2, p.body); px(ox+11, oy+2, p.body); px(ox+12, oy+2, p.bodyDark); px(ox+13, oy+2, p.outline);
+            // Upper face
+            px(ox+5, oy+3, p.outline); px(ox+6, oy+3, p.body); px(ox+7, oy+3, p.bodyLight); px(ox+8, oy+3, p.bodyLight); px(ox+9, oy+3, p.bodyLight); px(ox+10, oy+3, p.bodyLight); px(ox+11, oy+3, p.bodyLight); px(ox+12, oy+3, p.body); px(ox+13, oy+3, p.outline);
+            // Triple eyes row
+            px(ox+5, oy+4, p.outline); px(ox+6, oy+4, p.body); px(ox+7, oy+4, p.eye); px(ox+8, oy+4, p.bodyLight); px(ox+9, oy+4, p.eye); px(ox+10, oy+4, p.bodyLight); px(ox+11, oy+4, p.eye); px(ox+12, oy+4, p.body); px(ox+13, oy+4, p.outline);
             // Mouth
-            px(ox+7, oy+5, p.body); px(ox+8, oy+5, mouthOpen ? p.mouth : p.body); px(ox+9, oy+5, mouthOpen ? p.mouth : p.body); px(ox+10, oy+5, mouthOpen ? p.mouth : p.body); px(ox+11, oy+5, p.body);
-            if (mouthOpen) { px(ox+8, oy+5, p.glow); px(ox+10, oy+5, p.glow); }
-            // Neck
-            px(ox+8, oy+6, p.body); px(ox+9, oy+6, p.body); px(ox+10, oy+6, p.body);
+            px(ox+6, oy+5, p.outline); px(ox+7, oy+5, p.body);
+            px(ox+8, oy+5, mouthOpen ? p.teeth : p.body);
+            px(ox+9, oy+5, mouthOpen ? p.mouth : p.body);
+            px(ox+10, oy+5, mouthOpen ? p.teeth : p.body);
+            px(ox+11, oy+5, mouthOpen ? p.mouth : p.body);
+            px(ox+12, oy+5, p.body); px(ox+13, oy+5, p.outline);
+            if (mouthOpen) { px(ox+9, oy+5, p.glow); px(ox+11, oy+5, p.glow); }
+            // Chin
+            px(ox+7, oy+6, p.outline); px(ox+8, oy+6, p.bodyDark); px(ox+9, oy+6, p.body); px(ox+10, oy+6, p.body); px(ox+11, oy+6, p.bodyDark); px(ox+12, oy+6, p.outline);
+
             // Massive torso
-            px(ox+5, oy+7, p.armor); px(ox+6, oy+7, p.body); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.bodyLight); px(ox+10, oy+7, p.bodyLight); px(ox+11, oy+7, p.bodyLight); px(ox+12, oy+7, p.body); px(ox+13, oy+7, p.armor);
-            px(ox+4, oy+8, p.armor); px(ox+5, oy+8, p.body); px(ox+6, oy+8, p.bodyLight); px(ox+7, oy+8, p.body); px(ox+8, oy+8, p.bodyLight); px(ox+9, oy+8, p.glow); px(ox+10, oy+8, p.bodyLight); px(ox+11, oy+8, p.body); px(ox+12, oy+8, p.bodyLight); px(ox+13, oy+8, p.body); px(ox+14, oy+8, p.armor);
-            px(ox+4, oy+9, p.armor); px(ox+5, oy+9, p.bodyDark); px(ox+6, oy+9, p.body); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.body); px(ox+10, oy+9, p.body); px(ox+11, oy+9, p.body); px(ox+12, oy+9, p.body); px(ox+13, oy+9, p.bodyDark); px(ox+14, oy+9, p.armor);
-            px(ox+5, oy+10, p.bodyDark); px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.body); px(ox+8, oy+10, p.body); px(ox+9, oy+10, p.body); px(ox+10, oy+10, p.body); px(ox+11, oy+10, p.body); px(ox+12, oy+10, p.bodyDark); px(ox+13, oy+10, p.bodyDark);
+            px(ox+4, oy+7, p.outline); px(ox+5, oy+7, p.armor); px(ox+6, oy+7, p.body); px(ox+7, oy+7, p.bodyLight); px(ox+8, oy+7, p.bodyLight); px(ox+9, oy+7, p.bodyLight); px(ox+10, oy+7, p.bodyLight); px(ox+11, oy+7, p.bodyLight); px(ox+12, oy+7, p.body); px(ox+13, oy+7, p.armor); px(ox+14, oy+7, p.outline);
+            px(ox+3, oy+8, p.outline); px(ox+4, oy+8, p.armor); px(ox+5, oy+8, p.body); px(ox+6, oy+8, p.bodyLight); px(ox+7, oy+8, p.body); px(ox+8, oy+8, p.bodyLight); px(ox+9, oy+8, p.glow); px(ox+10, oy+8, p.bodyLight); px(ox+11, oy+8, p.body); px(ox+12, oy+8, p.bodyLight); px(ox+13, oy+8, p.body); px(ox+14, oy+8, p.armor); px(ox+15, oy+8, p.outline);
+            px(ox+3, oy+9, p.outline); px(ox+4, oy+9, p.armor); px(ox+5, oy+9, p.bodyDark); px(ox+6, oy+9, p.body); px(ox+7, oy+9, p.body); px(ox+8, oy+9, p.body); px(ox+9, oy+9, p.body); px(ox+10, oy+9, p.body); px(ox+11, oy+9, p.body); px(ox+12, oy+9, p.body); px(ox+13, oy+9, p.bodyDark); px(ox+14, oy+9, p.armor); px(ox+15, oy+9, p.outline);
+            // Lower torso
+            px(ox+4, oy+10, p.outline); px(ox+5, oy+10, p.bodyDark); px(ox+6, oy+10, p.bodyDark); px(ox+7, oy+10, p.body); px(ox+8, oy+10, p.body); px(ox+9, oy+10, p.body); px(ox+10, oy+10, p.body); px(ox+11, oy+10, p.body); px(ox+12, oy+10, p.bodyDark); px(ox+13, oy+10, p.bodyDark); px(ox+14, oy+10, p.outline);
+            // Waist
+            px(ox+5, oy+11, p.outline); px(ox+6, oy+11, p.armor); px(ox+7, oy+11, p.bodyDark); px(ox+8, oy+11, p.bodyDark); px(ox+9, oy+11, p.bodyDark); px(ox+10, oy+11, p.bodyDark); px(ox+11, oy+11, p.bodyDark); px(ox+12, oy+11, p.armor); px(ox+13, oy+11, p.outline);
+
             // Arms
             if (armState === 0) {
-                px(ox+3, oy+8, p.body); px(ox+3, oy+9, p.body); px(ox+2, oy+10, p.claw); px(ox+2, oy+9, p.body);
-                px(ox+15, oy+8, p.body); px(ox+15, oy+9, p.body); px(ox+16, oy+10, p.claw); px(ox+16, oy+9, p.body);
+                // Arms down
+                px(ox+2, oy+7, p.outline); px(ox+2, oy+8, p.body); px(ox+2, oy+9, p.body); px(ox+1, oy+10, p.claw); px(ox+1, oy+9, p.bodyDark);
+                px(ox+16, oy+7, p.outline); px(ox+16, oy+8, p.body); px(ox+16, oy+9, p.body); px(ox+17, oy+10, p.claw); px(ox+17, oy+9, p.bodyDark);
             } else {
-                px(ox+3, oy+6, p.body); px(ox+2, oy+5, p.body); px(ox+1, oy+4, p.claw); px(ox+1, oy+5, p.claw);
-                px(ox+15, oy+6, p.body); px(ox+16, oy+5, p.body); px(ox+17, oy+4, p.claw); px(ox+17, oy+5, p.claw);
+                // Arms raised for attack
+                px(ox+2, oy+5, p.outline); px(ox+2, oy+6, p.body); px(ox+1, oy+4, p.bodyDark); px(ox+1, oy+3, p.claw); px(ox+1, oy+5, p.claw);
+                px(ox+16, oy+5, p.outline); px(ox+16, oy+6, p.body); px(ox+17, oy+4, p.bodyDark); px(ox+17, oy+3, p.claw); px(ox+17, oy+5, p.claw);
             }
+
             // Legs (thick stumps)
-            px(ox+6, oy+11, p.bodyDark); px(ox+7, oy+11, p.bodyDark); px(ox+8, oy+11, p.bodyDark);
-            px(ox+10, oy+11, p.bodyDark); px(ox+11, oy+11, p.bodyDark); px(ox+12, oy+11, p.bodyDark);
-            px(ox+6, oy+12, p.outline); px(ox+7, oy+12, p.bodyDark); px(ox+8, oy+12, p.outline);
-            px(ox+10, oy+12, p.outline); px(ox+11, oy+12, p.bodyDark); px(ox+12, oy+12, p.outline);
+            px(ox+6, oy+12, p.outline); px(ox+7, oy+12, p.bodyDark); px(ox+8, oy+12, p.bodyDark); px(ox+9, oy+12, p.outline);
+            px(ox+10, oy+12, p.outline); px(ox+11, oy+12, p.bodyDark); px(ox+12, oy+12, p.bodyDark); px(ox+13, oy+12, p.outline);
+            px(ox+5, oy+13, p.outline); px(ox+6, oy+13, p.bodyDark); px(ox+7, oy+13, p.body); px(ox+8, oy+13, p.bodyDark); px(ox+9, oy+13, p.outline);
+            px(ox+10, oy+13, p.outline); px(ox+11, oy+13, p.bodyDark); px(ox+12, oy+13, p.body); px(ox+13, oy+13, p.bodyDark); px(ox+14, oy+13, p.outline);
+            // Feet
+            px(ox+5, oy+14, p.outline); px(ox+6, oy+14, p.outline); px(ox+7, oy+14, p.bodyDark); px(ox+8, oy+14, p.outline); px(ox+9, oy+14, p.outline);
+            px(ox+10, oy+14, p.outline); px(ox+11, oy+14, p.outline); px(ox+12, oy+14, p.bodyDark); px(ox+13, oy+14, p.outline); px(ox+14, oy+14, p.outline);
         };
 
         // Row 0: idle
@@ -358,14 +481,15 @@ const ENEMY_SPRITE_GEN = {
         drawAbom(FW, FH*2, 0, true);
         // Row 3: hurt
         drawAbom(0, FH*3, 0, true);
-        // Row 4: death
+        // Row 4: death frame 1
         drawAbom(0, FH*4, 0, false);
-        // Massive corpse puddle
-        const dy = FH*4;
-        for (let dx = 4; dx <= 14; dx++) { px(FW+dx, dy+8, p.bodyDark); }
-        for (let dx = 5; dx <= 13; dx++) { px(FW+dx, dy+9, p.body); }
-        for (let dx = 6; dx <= 12; dx++) { px(FW+dx, dy+10, p.blood); }
-        for (let dx = 7; dx <= 11; dx++) { px(FW+dx, dy+11, p.blood); }
+        // Row 4 frame 2: massive corpse puddle
+        this._rect(ctx, FW+3, FH*4+10, 14, 1, p.armor);
+        this._rect(ctx, FW+4, FH*4+11, 12, 2, p.bodyDark);
+        this._rect(ctx, FW+5, FH*4+12, 10, 1, p.body);
+        this._rect(ctx, FW+6, FH*4+13, 8, 1, p.blood);
+        this._rect(ctx, FW+7, FH*4+14, 6, 1, p.blood);
+        px(FW+7, FH*4+10, p.eye); px(FW+9, FH*4+10, p.eye); px(FW+11, FH*4+10, p.eye);
     },
 
     // ── Animation definitions ──
