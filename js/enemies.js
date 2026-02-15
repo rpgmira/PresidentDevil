@@ -51,13 +51,15 @@ class Enemy {
 
         // Stats based on type, scaled by difficulty
         const dm = difficultyMult;
+        // Speed escalation: enemies start at half speed and scale up with difficulty
+        const speedScale = dm;
         switch (type) {
             case 'crawler':
                 this.hp = Math.floor(20 * dm);
                 this.maxHp = this.hp;
                 this.damage = Math.floor(8 * dm);
-                this.speed = CONFIG.ENEMY_SPEED_PATROL;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE;
                 this.xp = 5;
                 break;
@@ -65,8 +67,8 @@ class Enemy {
                 this.hp = Math.floor(35 * dm);
                 this.maxHp = this.hp;
                 this.damage = Math.floor(15 * dm);
-                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.8;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.2;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.8 * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.2 * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 1.3;
                 this.xp = 10;
                 break;
@@ -74,8 +76,8 @@ class Enemy {
                 this.hp = Math.floor(80 * dm);
                 this.maxHp = this.hp;
                 this.damage = Math.floor(25 * dm);
-                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.5;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.6;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.5 * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.6 * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 0.9;
                 this.xp = 20;
                 this.chargeTimer = 0;
@@ -85,8 +87,8 @@ class Enemy {
                 this.hp = Math.floor(15 * dm);
                 this.maxHp = this.hp;
                 this.damage = Math.floor(12 * dm);
-                this.speed = CONFIG.ENEMY_SPEED_PATROL * 1.5;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.8;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 1.5 * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.8 * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 1.6;
                 this.xp = 15;
                 this.teleportCooldown = 0;
@@ -95,8 +97,8 @@ class Enemy {
                 this.hp = Math.floor(200 * dm);
                 this.maxHp = this.hp;
                 this.damage = Math.floor(30 * dm);
-                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.4;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.7;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.4 * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.7 * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 2;
                 this.xp = 50;
                 this.chargeTimer = 0;
@@ -104,8 +106,8 @@ class Enemy {
                 break;
             default:
                 this.hp = 20; this.maxHp = 20; this.damage = 8;
-                this.speed = CONFIG.ENEMY_SPEED_PATROL;
-                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * speedScale;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * speedScale;
                 this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE;
                 this.xp = 5;
         }
