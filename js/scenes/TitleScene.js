@@ -7,12 +7,25 @@ class TitleScene extends Phaser.Scene {
         super({ key: 'TitleScene' });
     }
 
+    preload() {
+        this.load.image('cover_art', 'sprites/cover_pixel_512.png');
+    }
+
     create() {
         const cx = CONFIG.GAME_WIDTH / 2;
         const cy = CONFIG.GAME_HEIGHT / 2;
 
         // Dark background
         this.cameras.main.setBackgroundColor('#0a0a0a');
+
+        // Cover art — subtle background, centered and faded
+        const cover = this.add.image(cx, cy - 20, 'cover_art');
+        cover.setAlpha(0.12);
+        cover.setOrigin(0.5);
+        // Scale to fit nicely without dominating (about 70% of game height)
+        const targetHeight = CONFIG.GAME_HEIGHT * 0.7;
+        cover.setScale(targetHeight / cover.height);
+        cover.setDepth(0);
 
         // Title
         this.add.text(cx, cy - 100, 'PRESIDENT\nDEVIL', {
