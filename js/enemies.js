@@ -3,13 +3,28 @@
 // ============================================
 
 class Enemy {
-    constructor(scene, x, y, type) {
+    constructor(scene, x, y, type, difficultyMult = 1) {
         this.scene = scene;
-        this.type = type; // 'crawler' or 'lurker'
+        this.type = type; // 'crawler', 'lurker', 'brute', 'shade', 'abomination'
         this.alive = true;
 
-        const color = type === 'crawler' ? CONFIG.COLORS.ENEMY_CRAWLER : CONFIG.COLORS.ENEMY_LURKER;
-        const size = type === 'lurker' ? CONFIG.TILE_SIZE - 2 : CONFIG.TILE_SIZE - 4;
+        const colorMap = {
+            crawler: CONFIG.COLORS.ENEMY_CRAWLER,
+            lurker: CONFIG.COLORS.ENEMY_LURKER,
+            brute: CONFIG.COLORS.ENEMY_BRUTE,
+            shade: CONFIG.COLORS.ENEMY_SHADE,
+            abomination: 0xff2222
+        };
+        const sizeMap = {
+            crawler: CONFIG.TILE_SIZE - 4,
+            lurker: CONFIG.TILE_SIZE - 2,
+            brute: CONFIG.TILE_SIZE,
+            shade: CONFIG.TILE_SIZE - 5,
+            abomination: CONFIG.TILE_SIZE + 4
+        };
+
+        const color = colorMap[type] || CONFIG.COLORS.ENEMY_CRAWLER;
+        const size = sizeMap[type] || CONFIG.TILE_SIZE - 4;
 
         this.sprite = scene.add.rectangle(
             x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
@@ -20,31 +35,79 @@ class Enemy {
         scene.physics.add.existing(this.sprite);
         this.sprite.body.setCollideWorldBounds(false);
         this.sprite.setData('enemy', this);
-        this.label = scene.add.text(this.sprite.x, this.sprite.y - 12, type === 'crawler' ? 'CRAWLER' : 'LURKER', {
-            fontSize: '8px',
-            fill: '#ffaaaa',
+
+        const labelMap = {
+            crawler: 'CRAWLER', lurker: 'LURKER', brute: 'BRUTE',
+            shade: 'SHADE', abomination: '☠ ABOMINATION'
+        };
+        const labelColor = type === 'abomination' ? '#ff4444' : '#ffaaaa';
+        this.label = scene.add.text(this.sprite.x, this.sprite.y - 12, labelMap[type] || type.toUpperCase(), {
+            fontSize: type === 'abomination' ? '9px' : '8px',
+            fill: labelColor,
             fontFamily: 'monospace',
             backgroundColor: '#000000',
             padding: { left: 1, right: 1, top: 0, bottom: 0 }
         }).setOrigin(0.5).setDepth(59);
 
-        // Stats based on type
-        if (type === 'crawler') {
-            this.hp = 20;
-            this.maxHp = 20;
-            this.damage = 8;
-            this.speed = CONFIG.ENEMY_SPEED_PATROL;
-            this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE;
-            this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE;
-            this.xp = 5;
-        } else { // lurker
-            this.hp = 35;
-            this.maxHp = 35;
-            this.damage = 15;
-            this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.8;
-            this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.2;
-            this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 1.3;
-            this.xp = 10;
+        // Stats based on type, scaled by difficulty
+        const dm = difficultyMult;
+        switch (type) {
+            case 'crawler':
+                this.hp = Math.floor(20 * dm);
+                this.maxHp = this.hp;
+                this.damage = Math.floor(8 * dm);
+                this.speed = CONFIG.ENEMY_SPEED_PATROL;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE;
+                this.xp = 5;
+                break;
+            case 'lurker':
+                this.hp = Math.floor(35 * dm);
+                this.maxHp = this.hp;
+                this.damage = Math.floor(15 * dm);
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.8;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.2;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 1.3;
+                this.xp = 10;
+                break;
+            case 'brute':
+                this.hp = Math.floor(80 * dm);
+                this.maxHp = this.hp;
+                this.damage = Math.floor(25 * dm);
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.5;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.6;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 0.9;
+                this.xp = 20;
+                this.chargeTimer = 0;
+                this.isCharging = false;
+                break;
+            case 'shade':
+                this.hp = Math.floor(15 * dm);
+                this.maxHp = this.hp;
+                this.damage = Math.floor(12 * dm);
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 1.5;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 1.8;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 1.6;
+                this.xp = 15;
+                this.teleportCooldown = 0;
+                break;
+            case 'abomination':
+                this.hp = Math.floor(200 * dm);
+                this.maxHp = this.hp;
+                this.damage = Math.floor(30 * dm);
+                this.speed = CONFIG.ENEMY_SPEED_PATROL * 0.4;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE * 0.7;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE * 2;
+                this.xp = 50;
+                this.chargeTimer = 0;
+                this.isCharging = false;
+                break;
+            default:
+                this.hp = 20; this.maxHp = 20; this.damage = 8;
+                this.speed = CONFIG.ENEMY_SPEED_PATROL;
+                this.chaseSpeed = CONFIG.ENEMY_SPEED_CHASE;
+                this.detectionRange = CONFIG.ENEMY_DETECTION_RANGE;
+                this.xp = 5;
         }
 
         // AI State
@@ -75,8 +138,8 @@ class Enemy {
         if (this.animTimer > 300) {
             this.animTimer = 0;
             this.animFrame = (this.animFrame + 1) % 2;
-            // Simple animation: slight size pulse
-            const baseSize = this.type === 'lurker' ? CONFIG.TILE_SIZE - 2 : CONFIG.TILE_SIZE - 4;
+            const sizeMap = { crawler: CONFIG.TILE_SIZE - 4, lurker: CONFIG.TILE_SIZE - 2, brute: CONFIG.TILE_SIZE, shade: CONFIG.TILE_SIZE - 5, abomination: CONFIG.TILE_SIZE + 4 };
+            const baseSize = sizeMap[this.type] || CONFIG.TILE_SIZE - 4;
             const scale = this.animFrame === 0 ? 1 : 0.9;
             this.sprite.setSize(baseSize * scale, baseSize * scale);
         }
@@ -165,6 +228,57 @@ class Enemy {
     }
 
     _chase(delta, player, dungeon) {
+        // Shade: teleport behind player when in range
+        if (this.type === 'shade') {
+            if (this.teleportCooldown !== undefined) this.teleportCooldown -= delta;
+            const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
+            if (this.teleportCooldown <= 0 && dist < this.detectionRange * 0.6 && dist > CONFIG.ENEMY_ATTACK_RANGE * 2) {
+                // Teleport to a tile near the player
+                const angle = Phaser.Math.Angle.Between(player.sprite.x, player.sprite.y, this.sprite.x, this.sprite.y) + Math.PI;
+                const tx = Math.floor((player.sprite.x + Math.cos(angle) * 24) / CONFIG.TILE_SIZE);
+                const ty = Math.floor((player.sprite.y + Math.sin(angle) * 24) / CONFIG.TILE_SIZE);
+                if (dungeon.isWalkable(tx, ty)) {
+                    // Teleport effect at old position
+                    if (this.scene.particles) this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
+                    this.sprite.x = tx * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                    this.sprite.y = ty * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                    if (this.scene.particles) this.scene.particles.hitSpark(this.sprite.x, this.sprite.y);
+                    this.teleportCooldown = 4000;
+                    return;
+                }
+            }
+        }
+        // Brute / Abomination: charge attack when close enough
+        if ((this.type === 'brute' || this.type === 'abomination') && this.chargeTimer !== undefined) {
+            this.chargeTimer -= delta;
+            const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
+            if (!this.isCharging && this.chargeTimer <= 0 && dist < this.detectionRange * 0.5 && dist > CONFIG.ENEMY_ATTACK_RANGE * 2) {
+                this.isCharging = true;
+                this.chargeDirection = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
+                this.chargeDuration = 600;
+                this.sprite.setFillStyle(0xffaa00);
+            }
+            if (this.isCharging) {
+                this.chargeDuration -= delta;
+                const chargeSpeed = this.chaseSpeed * 3;
+                const cvx = Math.cos(this.chargeDirection) * chargeSpeed * (delta / 1000);
+                const cvy = Math.sin(this.chargeDirection) * chargeSpeed * (delta / 1000);
+                const newX = this.sprite.x + cvx;
+                const newY = this.sprite.y + cvy;
+                const checkTX = Math.floor(newX / CONFIG.TILE_SIZE);
+                const checkTY = Math.floor(newY / CONFIG.TILE_SIZE);
+                if (dungeon.isWalkable(checkTX, checkTY)) {
+                    this.sprite.x = newX;
+                    this.sprite.y = newY;
+                }
+                if (this.chargeDuration <= 0) {
+                    this.isCharging = false;
+                    this.chargeTimer = this.type === 'abomination' ? 5000 : 6000;
+                    this._restoreColor();
+                }
+                return;
+            }
+        }
         this._moveToward(player.sprite.x, player.sprite.y, this.chaseSpeed, delta, dungeon);
     }
 
@@ -194,17 +308,36 @@ class Enemy {
     _attack(player) {
         if (this.attackCooldown > 0) return;
 
-        player.takeDamage(this.damage);
+        // Abomination slam: area damage + screen shake
+        if (this.type === 'abomination') {
+            player.takeDamage(this.damage);
+            if (this.scene.cameras && this.scene.cameras.main) {
+                this.scene.cameras.main.shake(200, 0.01);
+            }
+            if (this.scene.particles) {
+                this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
+            }
+        } else {
+            player.takeDamage(this.damage);
+        }
         this.attackCooldown = CONFIG.ENEMY_ATTACK_COOLDOWN;
 
         // Visual feedback: flash
         this.sprite.setFillStyle(0xffffff);
         this.scene.time.delayedCall(100, () => {
-            if (this.alive) {
-                const color = this.type === 'crawler' ? CONFIG.COLORS.ENEMY_CRAWLER : CONFIG.COLORS.ENEMY_LURKER;
-                this.sprite.setFillStyle(color);
-            }
+            if (this.alive) this._restoreColor();
         });
+    }
+
+    _restoreColor() {
+        const colorMap = {
+            crawler: CONFIG.COLORS.ENEMY_CRAWLER,
+            lurker: CONFIG.COLORS.ENEMY_LURKER,
+            brute: CONFIG.COLORS.ENEMY_BRUTE,
+            shade: CONFIG.COLORS.ENEMY_SHADE,
+            abomination: 0xff2222
+        };
+        this.sprite.setFillStyle(colorMap[this.type] || CONFIG.COLORS.ENEMY_CRAWLER);
     }
 
     _moveToward(targetX, targetY, speed, delta, dungeon) {
@@ -235,10 +368,7 @@ class Enemy {
         // Hit flash
         this.sprite.setFillStyle(0xff4444);
         this.scene.time.delayedCall(80, () => {
-            if (this.alive) {
-                const color = this.type === 'crawler' ? CONFIG.COLORS.ENEMY_CRAWLER : CONFIG.COLORS.ENEMY_LURKER;
-                this.sprite.setFillStyle(color);
-            }
+            if (this.alive) this._restoreColor();
         });
 
         // Knockback / stun
@@ -251,6 +381,12 @@ class Enemy {
 
     die() {
         this.alive = false;
+
+        // Death burst particles
+        if (this.scene.particles) {
+            this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
+        }
+
         // Leave blood stain
         const blood = this.scene.add.rectangle(
             this.sprite.x, this.sprite.y,
@@ -260,8 +396,20 @@ class Enemy {
         blood.setAlpha(0.5);
         blood.setDepth(0);
 
+        // Animated death: shrink + fade out, then destroy
         this.label.destroy();
-        this.sprite.destroy();
+        this.sprite.setFillStyle(0xff0000);
+        this.scene.tweens.add({
+            targets: this.sprite,
+            scaleX: 0,
+            scaleY: 0,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+                if (this.sprite) this.sprite.destroy();
+            }
+        });
     }
 
     getWorldPosition() {
@@ -279,18 +427,38 @@ class EnemyManager {
         this.enemies = [];
     }
 
-    spawnInRoom(room, count, type) {
+    spawnInRoom(room, count, type, difficultyMult) {
+        const dm = difficultyMult || 1;
         for (let i = 0; i < count; i++) {
             const x = Phaser.Math.Between(room.x + 1, room.x + room.width - 2);
             const y = Phaser.Math.Between(room.y + 1, room.y + room.height - 2);
-            const enemy = new Enemy(this.scene, x, y, type || (Math.random() < 0.7 ? 'crawler' : 'lurker'));
+            // Choose type based on weighting if not specified
+            let chosenType = type;
+            if (!chosenType) {
+                const roll = Math.random();
+                if (roll < 0.45) chosenType = 'crawler';
+                else if (roll < 0.75) chosenType = 'lurker';
+                else if (roll < 0.90) chosenType = 'brute';
+                else chosenType = 'shade';
+            }
+            const enemy = new Enemy(this.scene, x, y, chosenType, dm);
             enemy.patrolRoom = room;
             this.enemies.push(enemy);
         }
     }
 
-    spawnAtPosition(x, y, type) {
-        const enemy = new Enemy(this.scene, x, y, type);
+    spawnMiniBoss(room, difficultyMult) {
+        const cx = room.x + Math.floor(room.width / 2);
+        const cy = room.y + Math.floor(room.height / 2);
+        const dm = difficultyMult || 1;
+        const boss = new Enemy(this.scene, cx, cy, 'abomination', dm);
+        boss.patrolRoom = room;
+        this.enemies.push(boss);
+        return boss;
+    }
+
+    spawnAtPosition(x, y, type, difficultyMult) {
+        const enemy = new Enemy(this.scene, x, y, type, difficultyMult || 1);
         this.enemies.push(enemy);
         return enemy;
     }

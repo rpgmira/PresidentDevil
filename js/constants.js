@@ -121,6 +121,15 @@ const CONFIG = {
     VISIBILITY_RADIUS: 160, // pixels around player that are fully visible
     FOG_RADIUS: 250, // pixels — dim visibility zone
 
+    // Passive Items
+    PASSIVE_ITEMS: {
+        IRON_BOOTS: { name: 'Iron Boots', description: 'Move 15% slower but take 25% less damage', speedMult: 0.85, damageTakenMult: 0.75 },
+        ADRENALINE: { name: 'Adrenaline Shot', description: 'Move 20% faster, melee 30% faster', speedMult: 1.2, meleeSpeedMult: 0.7 },
+        BLOOD_PACT: { name: 'Blood Pact', description: 'Deal 40% more melee damage, corruption decays slower', meleeDamageMult: 1.4, corruptDecayMult: 0.5 },
+        QUIET_SHOES: { name: 'Quiet Shoes', description: 'Weapons generate 50% less noise/corruption', corruptionMult: 0.5 },
+        THICK_SKIN: { name: 'Thick Skin', description: '+30 max HP', maxHpBonus: 30 },
+    },
+
     // Colors (placeholder until pixel art)
     COLORS: {
         FLOOR_OFFICE: 0x5c5c80,
@@ -140,6 +149,9 @@ const CONFIG = {
         ITEM_AMMO: 0xffcc44,
         ITEM_KEY: 0xffff44,
         ITEM_WEAPON: 0x44ccff,
+        ITEM_PASSIVE: 0xff88ff,
+        ENEMY_BRUTE: 0xcc4444,
+        ENEMY_SHADE: 0x333366,
         CORRUPTION: 0x8a1a3a,
         HUD_BG: 0x111111,
         HUD_TEXT: 0xcccccc,

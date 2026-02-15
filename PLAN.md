@@ -169,7 +169,7 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Temporary weapon evolutions (spread shot, piercing, AOE)
 - [x] Survival timer / wave counter
 - [x] Event resolution (doors unseal, loot drops)
-- [ ] Weapon durability drain during panic (melee weapons degrade faster under pressure)
+- [x] Weapon durability drain during panic (melee weapons degrade faster under pressure)
 
 ### 1.7 — Corruption / Noise System
 - [x] Corruption meter (0–100)
@@ -187,7 +187,7 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Repair kits (restore durability to broken melee weapons)
 - [ ] Weapon upgrade tokens (used during panic events)
 - [x] Locked doors (require keys)
-- [ ] Shortcuts (one-way doors that unlock from one side)
+- [x] Shortcuts (one-way doors that unlock from one side)
 - [x] Item drop/swap system (drop items to pick up new ones when inventory is full)
 
 ### 1.9 — HUD & UI
@@ -227,21 +227,21 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 ### 2.2 — Visual Polish
 - [ ] Sprite-based player and enemies (replace placeholder shapes)
 - [ ] Tile art for walls, floors, doors
-- [ ] Particle effects (blood, sparks, corruption wisps)
-- [ ] Screen shake improvements
-- [ ] Lighting improvements (dynamic shadows, flickering)
-- [ ] Death animations
+- [x] Particle effects (blood, sparks, corruption wisps)
+- [x] Screen shake improvements
+- [x] Lighting improvements (dynamic shadows, flickering)
+- [x] Death animations
 
 ### 2.3 — Enemy Variety
-- [ ] 3-4 distinct enemy types with unique behaviors
-- [ ] Enemy difficulty scaling with corruption
-- [ ] Mini-boss enemies in later rooms
+- [x] 3-4 distinct enemy types with unique behaviors
+- [x] Enemy difficulty scaling with corruption
+- [x] Mini-boss enemies in later rooms
 - [ ] Enemy visual/audio tells
 
 ### 2.4 — Build Variety
 - [ ] Multiple weapon base types
 - [ ] Weapon evolution trees during panic events
-- [ ] Passive items that modify gameplay
+- [x] Passive items that modify gameplay
 - [ ] Build synergies
 
 ### 2.5 — Meta-Progression

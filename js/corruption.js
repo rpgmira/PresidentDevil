@@ -14,7 +14,8 @@ class CorruptionSystem {
 
         // Decay when not in combat / moving
         if (!player.moving && !player.isAttacking) {
-            this.value -= CONFIG.CORRUPTION_DECAY_RATE * (delta / 1000) * 10;
+            const decayMult = player.getPassiveMult ? player.getPassiveMult('corruptDecay') : 1;
+            this.value -= CONFIG.CORRUPTION_DECAY_RATE * (delta / 1000) * 10 * decayMult;
         }
 
         this.value = Phaser.Math.Clamp(this.value, 0, CONFIG.CORRUPTION_MAX);

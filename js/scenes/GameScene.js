@@ -44,6 +44,9 @@ class GameScene extends Phaser.Scene {
         // Corruption system
         this.corruption = new CorruptionSystem(this);
 
+        // Particle system
+        this.particles = new ParticleSystem(this);
+
         // Item sprites
         this.itemSprites = [];
         this._createItemSprites();
@@ -63,6 +66,10 @@ class GameScene extends Phaser.Scene {
 
         // HUD (separate scene overlay at zoom 1)
         this.scene.launch('HUDScene');
+
+        // Flickering light
+        this.flickerOffset = 0;
+        this.flickerTimer = 0;
 
         // Render initial tiles
         this._renderWorld();
@@ -84,6 +91,17 @@ class GameScene extends Phaser.Scene {
 
         // Update corruption
         const shouldPanic = this.corruption.update(delta, this.player);
+
+        // Update particles
+        this.particles.update(delta);
+
+        // Corruption wisps at high corruption
+        if (this.corruption.value > 40 && Math.random() < 0.1) {
+            this.particles.corruptionWisps(
+                this.player.sprite.x, this.player.sprite.y,
+                this.corruption.value / CONFIG.CORRUPTION_MAX
+            );
+        }
 
         // Check for panic event triggers
         if (shouldPanic && !this.panicState.active) {
@@ -126,6 +144,15 @@ class GameScene extends Phaser.Scene {
         // Hide/fade entities in darkness so world readability matches fog
         this._updateEntityVisibility();
 
+        // Flickering light update
+        this.flickerTimer += delta;
+        if (this.flickerTimer > 80) {
+            this.flickerTimer = 0;
+            // Subtle random flicker in visibility radius (±8px)
+            const intensity = this.panicState.active ? 16 : 8;
+            this.flickerOffset = (Math.random() - 0.5) * intensity;
+        }
+
         // Render (single combined pass)
         this._renderWorld();
         this._renderWallOverlay();
@@ -153,6 +180,8 @@ class GameScene extends Phaser.Scene {
 
         const playerX = this.player.sprite.x;
         const playerY = this.player.sprite.y;
+        const visRadius = CONFIG.VISIBILITY_RADIUS + (this.flickerOffset || 0);
+        const fogRadius = CONFIG.FOG_RADIUS + (this.flickerOffset || 0);
 
         for (let y = startTileY; y < endTileY; y++) {
             for (let x = startTileX; x < endTileX; x++) {
@@ -187,21 +216,21 @@ class GameScene extends Phaser.Scene {
                     g.strokeRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
                 }
 
-                // Overlay darkness (balanced)
+                // Overlay darkness (balanced, with flicker)
                 if (!tile.explored) {
                     let alpha = 0.82;
-                    if (dist <= CONFIG.VISIBILITY_RADIUS) {
+                    if (dist <= visRadius) {
                         alpha = 0.42;
-                    } else if (dist <= CONFIG.FOG_RADIUS) {
+                    } else if (dist <= fogRadius) {
                         alpha = 0.65;
                     }
                     g.fillStyle(0x000000, alpha);
                     g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                } else if (dist > CONFIG.FOG_RADIUS) {
+                } else if (dist > fogRadius) {
                     g.fillStyle(0x000000, 0.55);
                     g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                } else if (dist > CONFIG.VISIBILITY_RADIUS) {
-                    const alpha = 0.15 + ((dist - CONFIG.VISIBILITY_RADIUS) / (CONFIG.FOG_RADIUS - CONFIG.VISIBILITY_RADIUS)) * 0.3;
+                } else if (dist > visRadius) {
+                    const alpha = 0.15 + ((dist - visRadius) / (fogRadius - visRadius)) * 0.3;
                     g.fillStyle(0x000000, alpha);
                     g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
                 }
@@ -216,6 +245,8 @@ class GameScene extends Phaser.Scene {
         const playerTileX = Math.floor(this.player.sprite.x / CONFIG.TILE_SIZE);
         const playerTileY = Math.floor(this.player.sprite.y / CONFIG.TILE_SIZE);
         const radiusTiles = Math.ceil(CONFIG.VISIBILITY_RADIUS / CONFIG.TILE_SIZE) + 2;
+        const wallVisRadius = CONFIG.VISIBILITY_RADIUS + (this.flickerOffset || 0);
+        const wallFogRadius = CONFIG.FOG_RADIUS + (this.flickerOffset || 0);
 
         const startX = Math.max(0, playerTileX - radiusTiles);
         const endX = Math.min(this.dungeon.width - 1, playerTileX + radiusTiles);
@@ -233,9 +264,9 @@ class GameScene extends Phaser.Scene {
                 const cy = py + CONFIG.TILE_SIZE / 2;
                 const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, cx, cy);
 
-                if (dist > CONFIG.FOG_RADIUS + CONFIG.TILE_SIZE * 2) continue;
+                if (dist > wallFogRadius + CONFIG.TILE_SIZE * 2) continue;
 
-                const t = Phaser.Math.Clamp((dist - CONFIG.VISIBILITY_RADIUS) / Math.max(1, (CONFIG.FOG_RADIUS - CONFIG.VISIBILITY_RADIUS)), 0, 1);
+                const t = Phaser.Math.Clamp((dist - wallVisRadius) / Math.max(1, (wallFogRadius - wallVisRadius)), 0, 1);
                 const fillAlpha = 0.16 * (1 - t);
                 const strokeAlpha = 0.7 - t * 0.45;
 
@@ -252,6 +283,8 @@ class GameScene extends Phaser.Scene {
     _updateEntityVisibility() {
         const playerX = this.player.sprite.x;
         const playerY = this.player.sprite.y;
+        const visRadius = CONFIG.VISIBILITY_RADIUS + (this.flickerOffset || 0);
+        const fogRadius = CONFIG.FOG_RADIUS + (this.flickerOffset || 0);
 
         const getVisibilityAlpha = (x, y) => {
             const dist = Phaser.Math.Distance.Between(playerX, playerY, x, y);
@@ -260,12 +293,12 @@ class GameScene extends Phaser.Scene {
             const tile = this.dungeon.getTile(tileX, tileY);
 
             if (!tile.explored) {
-                return dist <= CONFIG.VISIBILITY_RADIUS ? 0.2 : 0;
+                return dist <= visRadius ? 0.2 : 0;
             }
-            if (dist <= CONFIG.VISIBILITY_RADIUS) return 1;
-            if (dist >= CONFIG.FOG_RADIUS) return 0.2;
+            if (dist <= visRadius) return 1;
+            if (dist >= fogRadius) return 0.2;
 
-            const t = (dist - CONFIG.VISIBILITY_RADIUS) / Math.max(1, (CONFIG.FOG_RADIUS - CONFIG.VISIBILITY_RADIUS));
+            const t = (dist - visRadius) / Math.max(1, (fogRadius - visRadius));
             return 1 - t * 0.8;
         };
 
@@ -343,11 +376,28 @@ class GameScene extends Phaser.Scene {
     }
 
     _spawnInitialEnemies() {
-        for (const room of this.dungeon.rooms) {
-            if (room.type === 'start') continue;
+        const rooms = this.dungeon.rooms;
+        const totalRooms = rooms.filter(r => r.type !== 'start').length;
+        let roomIndex = 0;
 
-            const count = room.type === 'boss' ? 0 : Phaser.Math.Between(1, 3);
-            this.enemyManager.spawnInRoom(room, count);
+        for (const room of rooms) {
+            if (room.type === 'start') continue;
+            roomIndex++;
+
+            // Difficulty scales with room distance from start (0.0-1.0)
+            const progress = roomIndex / totalRooms;
+            const diffMult = 1 + progress * 1.5; // 1.0 to 2.5
+
+            if (room.type === 'boss') {
+                // Spawn mini-boss in boss room
+                this.enemyManager.spawnMiniBoss(room, diffMult);
+                // Add a couple guards
+                this.enemyManager.spawnInRoom(room, 2, null, diffMult);
+                continue;
+            }
+
+            const count = Phaser.Math.Between(1, 3);
+            this.enemyManager.spawnInRoom(room, count, null, diffMult);
         }
     }
 
@@ -361,6 +411,7 @@ class GameScene extends Phaser.Scene {
             else if (spawn.type === 'key') color = CONFIG.COLORS.ITEM_KEY;
             else if (spawn.type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
             else if (spawn.type.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
+            else if (spawn.type.startsWith('passive')) color = CONFIG.COLORS.ITEM_PASSIVE;
             else color = 0x888888;
 
             const sprite = this.add.rectangle(px, py, 8, 8, color);
@@ -388,6 +439,7 @@ class GameScene extends Phaser.Scene {
 
             let color;
             if (door.type === 'locked') color = CONFIG.COLORS.DOOR_LOCKED;
+            else if (door.type === 'shortcut') color = 0x66aaff;
             else color = CONFIG.COLORS.DOOR;
 
             const sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2, color);
@@ -420,6 +472,9 @@ class GameScene extends Phaser.Scene {
                             this.player.heal(25);
                             picked = true;
                         }
+                    } else if (item.type === 'passive') {
+                        // Auto-pickup passive items
+                        picked = this.player.addPassiveItem(item.passiveKey);
                     } else {
                         // Try to add to inventory (or stack ammo)
                         if (item.type && item.type.startsWith('ammo')) {
@@ -436,6 +491,16 @@ class GameScene extends Phaser.Scene {
                     }
 
                     if (picked) {
+                        // Pickup sparkle
+                        if (this.particles) {
+                            let sparkleColor = 0xffffff;
+                            if (spawn.type === 'health') sparkleColor = 0xff4444;
+                            else if (spawn.type === 'key') sparkleColor = 0xffff44;
+                            else if (spawn.type.startsWith('ammo')) sparkleColor = 0xffcc44;
+                            else if (spawn.type.startsWith('weapon')) sparkleColor = 0x44ccff;
+                            else if (spawn.type.startsWith('passive')) sparkleColor = 0xff88ff;
+                            this.particles.pickupSparkle(sprite.x, sprite.y, sparkleColor);
+                        }
                         const label = sprite.getData('label');
                         if (label) label.destroy();
                         sprite.destroy();
@@ -481,6 +546,12 @@ class GameScene extends Phaser.Scene {
             case 'weapon_crossbow':
                 return { type: 'weapon', name: 'Crossbow', weapon: CONFIG.WEAPONS.CROSSBOW };
             default:
+                // Handle passive items
+                if (spawn.type.startsWith('passive_')) {
+                    const pKey = spawn.type.replace('passive_', '');
+                    const p = CONFIG.PASSIVE_ITEMS[pKey];
+                    if (p) return { type: 'passive', name: p.name, passiveKey: pKey };
+                }
                 return null;
         }
     }
@@ -499,6 +570,15 @@ class GameScene extends Phaser.Scene {
                         this.player.keys--;
                         door.open = true;
                         door.type = 'normal';
+                        sprite.setVisible(false);
+                        const label = sprite.getData('label');
+                        if (label) label.setVisible(false);
+                    }
+                } else if (door.type === 'shortcut') {
+                    // One-way: only opens from the source room side
+                    const playerRoom = this.dungeon.getRoomAt(this.player.sprite.x, this.player.sprite.y);
+                    if (playerRoom === door.sourceRoom || !door.sourceRoom) {
+                        door.open = true;
                         sprite.setVisible(false);
                         const label = sprite.getData('label');
                         if (label) label.setVisible(false);
@@ -861,12 +941,18 @@ class GameScene extends Phaser.Scene {
             weapon_shotgun: 'SHOTGUN',
             weapon_crossbow: 'CROSSBOW'
         };
+        if (type.startsWith('passive_')) {
+            const pKey = type.replace('passive_', '');
+            const p = CONFIG.PASSIVE_ITEMS[pKey];
+            return p ? p.name.toUpperCase() : 'PASSIVE';
+        }
         return labels[type] || 'ITEM';
     }
 
     _getDoorLabel(type) {
         if (type === 'locked') return 'LOCKED';
         if (type === 'sealed') return 'SEALED';
+        if (type === 'shortcut') return 'SHORTCUT';
         return 'DOOR';
     }
 }

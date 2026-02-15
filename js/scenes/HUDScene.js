@@ -90,6 +90,11 @@ class HUDScene extends Phaser.Scene {
             fontSize: '11px', fill: '#ffff44', fontFamily: 'monospace'
         });
 
+        // === PASSIVE ITEMS (below corruption bar) ===
+        this.passiveText = this.add.text(12, 50, '', {
+            fontSize: '9px', fill: '#ff88ff', fontFamily: 'monospace'
+        });
+
         // === PANIC INDICATOR (top center) ===
         this.panicText = this.add.text(W / 2, 40, '', {
             fontSize: '24px', fill: '#ff2222', fontFamily: 'monospace',
@@ -194,6 +199,13 @@ class HUDScene extends Phaser.Scene {
             this.keysText.setText(`🔑 x${player.keys}`);
         } else {
             this.keysText.setText('');
+        }
+
+        // Passive items display
+        if (player.passiveItems && player.passiveItems.length > 0) {
+            this.passiveText.setText(player.passiveItems.map(p => `♦ ${p.name}`).join('  '));
+        } else {
+            this.passiveText.setText('');
         }
 
         // Inventory slots

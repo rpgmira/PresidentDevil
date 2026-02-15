@@ -86,6 +86,9 @@ class Dungeon {
         // Place doors at corridor-room transitions
         this._placeDoors();
 
+        // Place shortcut doors (one-way connections between non-adjacent rooms)
+        this._placeShortcuts();
+
         // Place item spawns
         this._placeItems();
 
@@ -218,6 +221,75 @@ class Dungeon {
         }
     }
 
+    _placeShortcuts() {
+        // Create 1-2 one-way shortcuts between non-adjacent rooms
+        // These are doors that only open from one side (closer room → farther room)
+        if (this.rooms.length < 5) return;
+
+        const shortcuts = Phaser.Math.Between(1, 2);
+        for (let s = 0; s < shortcuts; s++) {
+            // Pick two rooms that aren't directly connected
+            const attempts = 20;
+            for (let a = 0; a < attempts; a++) {
+                const r1idx = Phaser.Math.Between(1, this.rooms.length - 2);
+                const r2idx = Phaser.Math.Between(r1idx + 2, Math.min(r1idx + 4, this.rooms.length - 1));
+                if (r2idx >= this.rooms.length) continue;
+
+                const r1 = this.rooms[r1idx];
+                const r2 = this.rooms[r2idx];
+
+                // Find closest wall points between the two rooms
+                // Carve a short corridor and place a one-way door
+                const dx = r2.centerX - r1.centerX;
+                const dy = r2.centerY - r1.centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 25 || dist < 8) continue; // too far or too close
+
+                // Carve shortcut corridor from r1 edge toward r2
+                let sx = r1.centerX;
+                let sy = r1.centerY;
+                const tx = r2.centerX;
+                const ty = r2.centerY;
+
+                // Carve path
+                while (sx !== tx) {
+                    sx += (tx > sx) ? 1 : -1;
+                    if (this.tiles[sy] && this.tiles[sy][sx]) {
+                        if (this.tiles[sy][sx].type === 'wall') {
+                            this.tiles[sy][sx] = { type: 'floor', explored: false, corridor: true };
+                        }
+                    }
+                }
+                while (sy !== ty) {
+                    sy += (ty > sy) ? 1 : -1;
+                    if (this.tiles[sy] && this.tiles[sy][sx]) {
+                        if (this.tiles[sy][sx].type === 'wall') {
+                            this.tiles[sy][sx] = { type: 'floor', explored: false, corridor: true };
+                        }
+                    }
+                }
+
+                // Place a shortcut door at the midpoint
+                const midX = Math.floor((r1.centerX + r2.centerX) / 2);
+                const midY = Math.floor((r1.centerY + r2.centerY) / 2);
+
+                const exists = this.doors.some(d => d.x === midX && d.y === midY);
+                if (!exists && this.getTile(midX, midY).type === 'floor') {
+                    this.doors.push({
+                        x: midX, y: midY,
+                        type: 'shortcut',
+                        open: false,
+                        room: r2,
+                        sourceRoom: r1,
+                        oneWay: true
+                    });
+                    this.tiles[midY][midX].door = true;
+                }
+                break; // placed one shortcut
+            }
+        }
+    }
+
     _placeItems() {
         this.itemSpawns = [];
         for (const room of this.rooms) {
@@ -241,6 +313,11 @@ class Dungeon {
                 else if (roll < 0.90) itemType = 'weapon_shotgun';
                 else if (roll < 0.93) itemType = 'key';
                 else if (roll < 0.96) itemType = 'repair_kit';
+                else if (roll < 0.98) {
+                    // Random passive item
+                    const passiveKeys = Object.keys(CONFIG.PASSIVE_ITEMS);
+                    itemType = 'passive_' + passiveKeys[Math.floor(Math.random() * passiveKeys.length)];
+                }
                 else itemType = 'weapon_crossbow';
 
                 this.itemSpawns.push({ x: ix, y: iy, type: itemType, room: room });

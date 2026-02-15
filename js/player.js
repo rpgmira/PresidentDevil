@@ -47,6 +47,9 @@ class Player {
         // Keys collected
         this.keys = 0;
 
+        // Passive items collected
+        this.passiveItems = [];
+
         // Stats tracking
         this.stats = {
             enemiesKilled: 0,
@@ -141,7 +144,7 @@ class Player {
             vy /= len;
         }
 
-        const speed = CONFIG.PLAYER_SPEED;
+        const speed = CONFIG.PLAYER_SPEED * this.getPassiveMult('speed');
         const newX = this.sprite.x + vx * speed * (1 / 60);
         const newY = this.sprite.y + vy * speed * (1 / 60);
 
@@ -243,6 +246,9 @@ class Player {
             amount = Math.floor(amount * 0.5);
         }
 
+        // Passive item damage reduction
+        amount = Math.floor(amount * this.getPassiveMult('damageTaken'));
+
         this.hp -= amount;
         this.stats.damageTaken += amount;
         this.invulnerable = true;
@@ -266,9 +272,27 @@ class Player {
 
     die() {
         this.alive = false;
+
+        // Dramatic death animation: flash red, shake camera, shrink+spin
         this.sprite.setFillStyle(CONFIG.COLORS.BLOOD);
-        this.sprite.setAlpha(0.6);
-        this.scene.time.delayedCall(1500, () => {
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(400, 0.02);
+            this.scene.cameras.main.flash(300, 180, 0, 0);
+        }
+        if (this.scene.particles) {
+            this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
+            this.scene.particles.bloodSplatter(this.sprite.x, this.sprite.y, 12);
+        }
+        this.scene.tweens.add({
+            targets: this.sprite,
+            scaleX: 0.2,
+            scaleY: 0.2,
+            alpha: 0.1,
+            angle: 360,
+            duration: 1200,
+            ease: 'Power3'
+        });
+        this.scene.time.delayedCall(2000, () => {
             this.scene.scene.stop('HUDScene');
             this.scene.scene.start('DeathScene', { stats: this.stats });
         });
@@ -283,6 +307,34 @@ class Player {
             }
         }
         return false; // Inventory full
+    }
+
+    addPassiveItem(passiveKey) {
+        const passive = CONFIG.PASSIVE_ITEMS[passiveKey];
+        if (!passive) return false;
+        this.passiveItems.push({ key: passiveKey, ...passive });
+
+        // Apply immediate effects
+        if (passive.maxHpBonus) {
+            this.maxHp += passive.maxHpBonus;
+            this.hp = Math.min(this.hp + passive.maxHpBonus, this.maxHp);
+        }
+        return true;
+    }
+
+    getPassiveMult(stat) {
+        let mult = 1;
+        for (const p of this.passiveItems) {
+            switch (stat) {
+                case 'speed': if (p.speedMult) mult *= p.speedMult; break;
+                case 'damageTaken': if (p.damageTakenMult) mult *= p.damageTakenMult; break;
+                case 'meleeDamage': if (p.meleeDamageMult) mult *= p.meleeDamageMult; break;
+                case 'meleeSpeed': if (p.meleeSpeedMult) mult *= p.meleeSpeedMult; break;
+                case 'corruption': if (p.corruptionMult) mult *= p.corruptionMult; break;
+                case 'corruptDecay': if (p.corruptDecayMult) mult *= p.corruptDecayMult; break;
+            }
+        }
+        return mult;
     }
 
     removeFromInventory(slotIndex) {

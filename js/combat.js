@@ -46,22 +46,25 @@ class CombatSystem {
 
         if (!closest) return;
 
-        // Deal damage
+        // Deal damage (with passive melee multiplier)
         const weapon = player.meleeWeapon;
-        closest.takeDamage(weapon.damage);
-        player.meleeCooldown = weapon.speed;
-        player.stats.damageDealt += weapon.damage;
+        const meleeDmg = Math.floor(weapon.damage * player.getPassiveMult('meleeDamage'));
+        closest.takeDamage(meleeDmg);
+        player.meleeCooldown = weapon.speed * player.getPassiveMult('meleeSpeed');
+        player.stats.damageDealt += meleeDmg;
         player.isAttacking = true;
 
-        // Corruption gain
-        corruption.add(weapon.corruption);
+        // Corruption gain (with passive multiplier)
+        corruption.add(weapon.corruption * player.getPassiveMult('corruption'));
 
-        // Durability loss
+        // Durability loss (2x drain during panic events)
         if (player.activeMeleeSlot >= 0) {
             const item = player.inventory[player.activeMeleeSlot];
             if (item && item.durability !== Infinity) {
-                item.durability--;
+                const drain = this.scene.panicState && this.scene.panicState.active ? 2 : 1;
+                item.durability -= drain;
                 if (item.durability <= 0) {
+                    item.durability = 0;
                     // Weapon breaks — auto-fallback to fists
                     player.activeMeleeSlot = -1;
                     player.meleeWeapon = CONFIG.WEAPONS.FISTS;
@@ -71,6 +74,11 @@ class CombatSystem {
 
         // Visual: attack indicator
         this._showMeleeEffect(pos, closest);
+
+        // Blood particles
+        if (this.scene.particles) {
+            this.scene.particles.bloodSplatter(closest.sprite.x, closest.sprite.y, 4);
+        }
 
         // Noise attraction — melee weapons generate noise
         if (this.scene.enemyManager.broadcastNoise) {
@@ -131,16 +139,18 @@ class CombatSystem {
                 const bulletAngle = angle + (i - (weapon.spread - 1) / 2) * spreadAngle;
                 this._spawnProjectile(pos.x, pos.y, bulletAngle, weapon);
             }
+            if (this.scene.particles) this.scene.particles.muzzleFlash(pos.x, pos.y, angle);
         } else if (weapon.aoeRadius) {
             // Grenade
             this._spawnGrenade(pos.x, pos.y, worldPoint.x, worldPoint.y, weapon);
         } else {
             // Single projectile
             this._spawnProjectile(pos.x, pos.y, angle, weapon);
+            if (this.scene.particles) this.scene.particles.muzzleFlash(pos.x, pos.y, angle);
         }
 
         player.rangedCooldown = weapon.speed;
-        corruption.add(weapon.corruption);
+        corruption.add(weapon.corruption * player.getPassiveMult('corruption'));
 
         // Ranged noise — attracts enemies
         if (this.scene.enemyManager.broadcastNoise) {
@@ -271,6 +281,10 @@ class CombatSystem {
                     this.scene.player.stats.enemiesKilled++;
                 }
                 this.scene.player.stats.damageDealt += proj.damage;
+                if (this.scene.particles) {
+                    this.scene.particles.hitSpark(proj.sprite.x, proj.sprite.y);
+                    this.scene.particles.bloodSplatter(proj.sprite.x, proj.sprite.y, 3);
+                }
                 proj.alive = false;
             }
         }
