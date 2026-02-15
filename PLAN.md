@@ -248,7 +248,6 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Persistent currency earned per run
 - [x] Unlock permanent upgrades between runs
 - [x] Unlock new starting items
-- [ ] Unlock new room types / enemy types
 - [x] Stats tracking across runs
 
 ---
@@ -299,6 +298,7 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [ ] Leaderboards
 - [ ] Modding support
 - [ ] Mobile touch controls
+- [ ] Unlock new room types / enemy types (moved from Phase 2.5)
 
 ---
 
