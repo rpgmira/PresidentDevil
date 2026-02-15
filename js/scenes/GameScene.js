@@ -47,6 +47,11 @@ class GameScene extends Phaser.Scene {
         // Particle system
         this.particles = new ParticleSystem(this);
 
+        // Generate item sprite textures if not yet done
+        if (!this.textures.exists('item_health')) {
+            ITEM_SPRITE_GEN.generate(this);
+        }
+
         // Item sprites
         this.itemSprites = [];
         this._createItemSprites();
@@ -406,15 +411,21 @@ class GameScene extends Phaser.Scene {
             const px = spawn.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = spawn.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
 
-            let color;
-            if (spawn.type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-            else if (spawn.type === 'key') color = CONFIG.COLORS.ITEM_KEY;
-            else if (spawn.type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-            else if (spawn.type.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
-            else if (spawn.type.startsWith('passive')) color = CONFIG.COLORS.ITEM_PASSIVE;
-            else color = 0x888888;
-
-            const sprite = this.add.rectangle(px, py, 8, 8, color);
+            const texKey = ITEM_SPRITE_GEN.getTextureKey(spawn.type);
+            let sprite;
+            if (texKey && this.textures.exists(texKey)) {
+                sprite = this.add.sprite(px, py, texKey);
+                sprite.setDisplaySize(12, 12);
+            } else {
+                let color;
+                if (spawn.type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
+                else if (spawn.type === 'key') color = CONFIG.COLORS.ITEM_KEY;
+                else if (spawn.type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
+                else if (spawn.type.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
+                else if (spawn.type.startsWith('passive')) color = CONFIG.COLORS.ITEM_PASSIVE;
+                else color = 0x888888;
+                sprite = this.add.rectangle(px, py, 8, 8, color);
+            }
             sprite.setDepth(55);
             sprite.setData('itemSpawn', spawn);
             sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(spawn.type), '#dddddd'));
@@ -732,12 +743,19 @@ class GameScene extends Phaser.Scene {
 
             const px = lx * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = ly * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-            let color;
-            if (type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-            else if (type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-            else color = CONFIG.COLORS.ITEM_WEAPON;
 
-            const sprite = this.add.rectangle(px, py, 8, 8, color);
+            const texKey = ITEM_SPRITE_GEN.getTextureKey(type);
+            let sprite;
+            if (texKey && this.textures.exists(texKey)) {
+                sprite = this.add.sprite(px, py, texKey);
+                sprite.setDisplaySize(12, 12);
+            } else {
+                let color;
+                if (type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
+                else if (type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
+                else color = CONFIG.COLORS.ITEM_WEAPON;
+                sprite = this.add.rectangle(px, py, 8, 8, color);
+            }
             sprite.setDepth(55);
             sprite.setData('itemSpawn', spawn);
             sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(type), '#dddddd'));
@@ -893,15 +911,22 @@ class GameScene extends Phaser.Scene {
 
         const px = worldX;
         const py = worldY;
-        let color;
-        if (spawnType === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-        else if (spawnType === 'key') color = CONFIG.COLORS.ITEM_KEY;
-        else if (spawnType.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-        else if (spawnType.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
-        else if (spawnType === 'repair_kit') color = 0x88ff88;
-        else color = 0x888888;
 
-        const sprite = this.add.rectangle(px, py, 8, 8, color);
+        const texKey = ITEM_SPRITE_GEN.getTextureKey(spawnType);
+        let sprite;
+        if (texKey && this.textures.exists(texKey)) {
+            sprite = this.add.sprite(px, py, texKey);
+            sprite.setDisplaySize(12, 12);
+        } else {
+            let color;
+            if (spawnType === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
+            else if (spawnType === 'key') color = CONFIG.COLORS.ITEM_KEY;
+            else if (spawnType.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
+            else if (spawnType.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
+            else if (spawnType === 'repair_kit') color = 0x88ff88;
+            else color = 0x888888;
+            sprite = this.add.rectangle(px, py, 8, 8, color);
+        }
         sprite.setDepth(55);
         sprite.setData('itemSpawn', spawn);
         sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(spawnType), '#dddddd'));

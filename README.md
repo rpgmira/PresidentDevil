@@ -28,6 +28,44 @@ A top-down roguelike built with [Phaser 3](https://phaser.io/) — explore a pro
 
 > All sprites are generated at runtime as pixel art — no external assets required.
 
+## Items & Weapons
+
+<p align="center">
+  <img src="sprites/item_knife.png" alt="Knife" width="64" />
+  &nbsp;
+  <img src="sprites/item_bat.png" alt="Baseball Bat" width="64" />
+  &nbsp;
+  <img src="sprites/item_handgun.png" alt="Handgun" width="64" />
+  &nbsp;
+  <img src="sprites/item_shotgun.png" alt="Shotgun" width="64" />
+  &nbsp;
+  <img src="sprites/item_crossbow.png" alt="Crossbow" width="64" />
+  &nbsp;
+  <img src="sprites/item_grenade.png" alt="Grenade" width="64" />
+</p>
+
+<p align="center">
+  <b>Knife</b> &nbsp;·&nbsp; <b>Bat</b> &nbsp;·&nbsp; <b>Handgun</b> &nbsp;·&nbsp; <b>Shotgun</b> &nbsp;·&nbsp; <b>Crossbow</b> &nbsp;·&nbsp; <b>Grenade</b>
+</p>
+
+<p align="center">
+  <img src="sprites/item_health.png" alt="Health Kit" width="64" />
+  &nbsp;
+  <img src="sprites/item_key.png" alt="Key" width="64" />
+  &nbsp;
+  <img src="sprites/item_repair_kit.png" alt="Repair Kit" width="64" />
+  &nbsp;
+  <img src="sprites/item_ammo_pistol.png" alt="Pistol Ammo" width="64" />
+  &nbsp;
+  <img src="sprites/item_ammo_shotgun.png" alt="Shotgun Shells" width="64" />
+  &nbsp;
+  <img src="sprites/item_ammo_crossbow.png" alt="Crossbow Bolts" width="64" />
+</p>
+
+<p align="center">
+  <b>Health</b> &nbsp;·&nbsp; <b>Key</b> &nbsp;·&nbsp; <b>Repair Kit</b> &nbsp;·&nbsp; <b>Ammo (Pistol)</b> &nbsp;·&nbsp; <b>Ammo (Shotgun)</b> &nbsp;·&nbsp; <b>Ammo (Crossbow)</b>
+</p>
+
 ## Story
 
 The President of the country is, in fact, the Devil. You play as his personal assistant — a woman who discovers the horrifying truth and must survive the chaos unfolding inside the presidential compound. She's resourceful, not a soldier, improvising with whatever she can find.

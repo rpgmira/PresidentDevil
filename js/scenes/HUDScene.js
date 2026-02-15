@@ -63,7 +63,7 @@ class HUDScene extends Phaser.Scene {
             const label = this.add.text(sx, slotY - slotSize / 2 - 10, `${i + 1}`, {
                 fontSize: '10px', fill: '#aaa', fontFamily: 'monospace'
             }).setOrigin(0.5);
-            const icon = this.add.rectangle(sx, slotY, slotSize - 10, slotSize - 10, 0x444444).setVisible(false);
+            const icon = this.add.sprite(sx, slotY, '__DEFAULT').setDisplaySize(slotSize - 10, slotSize - 10).setVisible(false);
             const itemText = this.add.text(sx, slotY + 8, '', {
                 fontSize: '7px', fill: '#ccc', fontFamily: 'monospace'
             }).setOrigin(0.5);
@@ -214,13 +214,12 @@ class HUDScene extends Phaser.Scene {
             const item = player.inventory[i];
 
             if (item) {
+                const itemTexKey = ITEM_SPRITE_GEN.getTextureKeyForItem(item);
+                if (itemTexKey && this.textures.exists(itemTexKey)) {
+                    slot.icon.setTexture(itemTexKey);
+                    slot.icon.clearTint();
+                }
                 slot.icon.setVisible(true);
-                if (item.weapon) slot.icon.setFillStyle(CONFIG.COLORS.ITEM_WEAPON);
-                else if (item.type === 'health') slot.icon.setFillStyle(CONFIG.COLORS.ITEM_HEALTH);
-                else if (item.type && item.type.startsWith('ammo')) slot.icon.setFillStyle(CONFIG.COLORS.ITEM_AMMO);
-                else if (item.type === 'key') slot.icon.setFillStyle(CONFIG.COLORS.ITEM_KEY);
-                else if (item.type === 'repair_kit') slot.icon.setFillStyle(0x88ff88);
-                else slot.icon.setFillStyle(0x888888);
 
                 // Short name
                 const shortName = (item.name || '').substring(0, 5);
