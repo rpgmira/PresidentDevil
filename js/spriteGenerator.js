@@ -75,6 +75,23 @@ const SPRITE_GEN = {
         }
         scene.textures.addCanvas('player_sprite', canvas);
 
+        // Pre-register all individual frames on the texture
+        const texture = scene.textures.get('player_sprite');
+        const frameCounts = [2,2,2,2, 4,4,4,4, 3,3,3,3, 2, 4]; // per row
+        for (let row = 0; row < this.ROWS; row++) {
+            const count = frameCounts[row] || this.COLS;
+            for (let col = 0; col < count; col++) {
+                texture.add(
+                    `r${row}_f${col}`,
+                    0,
+                    col * this.FRAME_W,
+                    row * this.FRAME_H,
+                    this.FRAME_W,
+                    this.FRAME_H
+                );
+            }
+        }
+
         // Define animations
         this._defineAnimations(scene);
     },
@@ -328,23 +345,11 @@ const SPRITE_GEN = {
         const FH = this.FRAME_H;
         const tex = 'player_sprite';
 
-        // Helper: create frames from row
+        // Helper: create frames from row (frames already registered in generate())
         const rowFrames = (row, count) => {
             const frames = [];
             for (let i = 0; i < count; i++) {
-                const frameName = `r${row}_f${i}`;
-                // Add frame to texture if not exists
-                if (!scene.textures.getFrame(tex, frameName)) {
-                    scene.textures.get(tex).add(
-                        frameName,          // frame name (string key)
-                        0,                  // source index
-                        i * FW,             // x
-                        row * FH,           // y
-                        FW,                 // width
-                        FH                  // height
-                    );
-                }
-                frames.push({ key: tex, frame: frameName });
+                frames.push({ key: tex, frame: `r${row}_f${i}` });
             }
             return frames;
         };

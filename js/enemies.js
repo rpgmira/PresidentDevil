@@ -8,13 +8,11 @@ class Enemy {
         this.type = type; // 'crawler', 'lurker', 'brute', 'shade', 'abomination'
         this.alive = true;
 
-        const colorMap = {
-            crawler: CONFIG.COLORS.ENEMY_CRAWLER,
-            lurker: CONFIG.COLORS.ENEMY_LURKER,
-            brute: CONFIG.COLORS.ENEMY_BRUTE,
-            shade: CONFIG.COLORS.ENEMY_SHADE,
-            abomination: 0xff2222
-        };
+        // Generate enemy sprite textures if not yet done
+        if (!scene.textures.exists('enemy_crawler')) {
+            ENEMY_SPRITE_GEN.generate(scene);
+        }
+
         const sizeMap = {
             crawler: CONFIG.TILE_SIZE - 4,
             lurker: CONFIG.TILE_SIZE - 2,
@@ -23,16 +21,18 @@ class Enemy {
             abomination: CONFIG.TILE_SIZE + 4
         };
 
-        const color = colorMap[type] || CONFIG.COLORS.ENEMY_CRAWLER;
         const size = sizeMap[type] || CONFIG.TILE_SIZE - 4;
 
-        this.sprite = scene.add.rectangle(
+        // Use sprite-based rendering
+        const texKey = `enemy_${type}`;
+        this.sprite = scene.add.sprite(
             x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
             y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
-            size, size, color
+            texKey, 'r0_f0'
         );
         this.sprite.setDepth(55);
         scene.physics.add.existing(this.sprite);
+        this.sprite.body.setSize(size, size);
         this.sprite.body.setCollideWorldBounds(false);
         this.sprite.setData('enemy', this);
 
@@ -124,9 +124,8 @@ class Enemy {
         this.patrolWaitTimer = 0;
         this.patrolRoom = null;
 
-        // Animation
-        this.animFrame = 0;
-        this.animTimer = 0;
+        // Start idle animation
+        this._playEnemyAnim('idle');
     }
 
     update(delta, player, dungeon) {
@@ -134,15 +133,8 @@ class Enemy {
 
         this.label.setPosition(this.sprite.x, this.sprite.y - 12);
 
-        this.animTimer += delta;
-        if (this.animTimer > 300) {
-            this.animTimer = 0;
-            this.animFrame = (this.animFrame + 1) % 2;
-            const sizeMap = { crawler: CONFIG.TILE_SIZE - 4, lurker: CONFIG.TILE_SIZE - 2, brute: CONFIG.TILE_SIZE, shade: CONFIG.TILE_SIZE - 5, abomination: CONFIG.TILE_SIZE + 4 };
-            const baseSize = sizeMap[this.type] || CONFIG.TILE_SIZE - 4;
-            const scale = this.animFrame === 0 ? 1 : 0.9;
-            this.sprite.setSize(baseSize * scale, baseSize * scale);
-        }
+        // Update animation based on state
+        this._updateEnemyAnimation();
 
         if (this.stunTimer > 0) {
             this.stunTimer -= delta;
@@ -256,7 +248,7 @@ class Enemy {
                 this.isCharging = true;
                 this.chargeDirection = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
                 this.chargeDuration = 600;
-                this.sprite.setFillStyle(0xffaa00);
+                this.sprite.setTint(0xffaa00);
             }
             if (this.isCharging) {
                 this.chargeDuration -= delta;
@@ -322,22 +314,18 @@ class Enemy {
         }
         this.attackCooldown = CONFIG.ENEMY_ATTACK_COOLDOWN;
 
-        // Visual feedback: flash
-        this.sprite.setFillStyle(0xffffff);
+        // Visual feedback: flash + attack anim
+        this.sprite.setTint(0xffffff);
+        this._playEnemyAnim('attack');
         this.scene.time.delayedCall(100, () => {
             if (this.alive) this._restoreColor();
         });
     }
 
     _restoreColor() {
-        const colorMap = {
-            crawler: CONFIG.COLORS.ENEMY_CRAWLER,
-            lurker: CONFIG.COLORS.ENEMY_LURKER,
-            brute: CONFIG.COLORS.ENEMY_BRUTE,
-            shade: CONFIG.COLORS.ENEMY_SHADE,
-            abomination: 0xff2222
-        };
-        this.sprite.setFillStyle(colorMap[this.type] || CONFIG.COLORS.ENEMY_CRAWLER);
+        if (this.sprite && this.sprite.clearTint) {
+            this.sprite.clearTint();
+        }
     }
 
     _moveToward(targetX, targetY, speed, delta, dungeon) {
@@ -366,7 +354,8 @@ class Enemy {
         this.hp -= amount;
 
         // Hit flash
-        this.sprite.setFillStyle(0xff4444);
+        this.sprite.setTint(0xff4444);
+        this._playEnemyAnim('hurt');
         this.scene.time.delayedCall(80, () => {
             if (this.alive) this._restoreColor();
         });
@@ -398,7 +387,8 @@ class Enemy {
 
         // Animated death: shrink + fade out, then destroy
         this.label.destroy();
-        this.sprite.setFillStyle(0xff0000);
+        this.sprite.setTint(0xff0000);
+        this._playEnemyAnim('death');
         this.scene.tweens.add({
             targets: this.sprite,
             scaleX: 0,
@@ -414,6 +404,31 @@ class Enemy {
 
     getWorldPosition() {
         return { x: this.sprite.x, y: this.sprite.y };
+    }
+
+    _updateEnemyAnimation() {
+        const prefix = `enemy_${this.type}`;
+        switch (this.state) {
+            case 'patrol':
+            case 'investigate':
+                this._playEnemyAnim('move');
+                break;
+            case 'chase':
+                this._playEnemyAnim('move');
+                break;
+            case 'attack':
+                // attack anim is triggered in _attack(), just let it play
+                break;
+            default:
+                this._playEnemyAnim('idle');
+        }
+    }
+
+    _playEnemyAnim(animName) {
+        const key = `enemy_${this.type}_${animName}`;
+        if (this.sprite && this.sprite.anims && this.sprite.anims.currentAnim?.key !== key) {
+            this.sprite.play(key, true);
+        }
     }
 }
 
