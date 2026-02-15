@@ -77,10 +77,10 @@ class VictoryScene extends Phaser.Scene {
 
         // Delay input
         this.time.delayedCall(1000, () => {
-            this.input.keyboard.on('keydown', () => {
+            this.input.keyboard.once('keydown', () => {
                 this.scene.start('TitleScene');
             });
-            this.input.on('pointerdown', () => {
+            this.input.once('pointerdown', () => {
                 this.scene.start('TitleScene');
             });
         });
