@@ -34,7 +34,9 @@ The President of the country is, in fact, the Devil. You play as his personal as
 
 ## Play
 
-No install required — just open in a browser:
+**[▶ Play Now in your browser](https://rpgmira.github.io/PresidentDevil/)**
+
+Or run locally — no install required:
 
 ```bash
 npx -y http-server -p 8080 -c-1
