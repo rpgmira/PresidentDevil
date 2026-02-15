@@ -292,10 +292,16 @@ class Dungeon {
 
     _placeItems() {
         this.itemSpawns = [];
+        const scavengerBonus = META.getScavengerBonus(); // 0, 0.15, or 0.30
         for (const room of this.rooms) {
             if (room.type === 'start') continue;
 
-            const itemCount = Phaser.Math.Between(0, 2);
+            // Scavenger bonus: chance for an extra item per room
+            let baseMax = 2;
+            if (scavengerBonus > 0 && Math.random() < scavengerBonus) {
+                baseMax = 3;
+            }
+            const itemCount = Phaser.Math.Between(0, baseMax);
             for (let i = 0; i < itemCount; i++) {
                 const ix = Phaser.Math.Between(room.x + 1, room.x + room.width - 2);
                 const iy = Phaser.Math.Between(room.y + 1, room.y + room.height - 2);
@@ -307,11 +313,13 @@ class Dungeon {
                 else if (roll < 0.5) itemType = 'ammo_pistol';
                 else if (roll < 0.6) itemType = 'ammo_shotgun';
                 else if (roll < 0.65) itemType = 'ammo_crossbow';
-                else if (roll < 0.75) itemType = 'weapon_knife';
-                else if (roll < 0.82) itemType = 'weapon_bat';
-                else if (roll < 0.87) itemType = 'weapon_handgun';
-                else if (roll < 0.90) itemType = 'weapon_shotgun';
-                else if (roll < 0.93) itemType = 'key';
+                else if (roll < 0.72) itemType = 'weapon_knife';
+                else if (roll < 0.79) itemType = 'weapon_bat';
+                else if (roll < 0.84) itemType = 'weapon_handgun';
+                else if (roll < 0.87) itemType = 'weapon_shotgun';
+                else if (roll < 0.89) itemType = 'weapon_chainsaw';
+                else if (roll < 0.91) itemType = 'grenade';
+                else if (roll < 0.94) itemType = 'key';
                 else if (roll < 0.96) itemType = 'repair_kit';
                 else if (roll < 0.98) {
                     // Random passive item

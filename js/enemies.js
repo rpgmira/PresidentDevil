@@ -221,15 +221,25 @@ class Enemy {
         }
 
         if (!this.patrolTarget) {
-            // Pick a random walkable tile nearby
+            // Pick a random walkable tile within the patrol room
             const tx = Math.floor(this.sprite.x / CONFIG.TILE_SIZE);
             const ty = Math.floor(this.sprite.y / CONFIG.TILE_SIZE);
-            const dx = Phaser.Math.Between(-3, 3);
-            const dy = Phaser.Math.Between(-3, 3);
-            if (dungeon.isWalkable(tx + dx, ty + dy)) {
+            let dx = Phaser.Math.Between(-3, 3);
+            let dy = Phaser.Math.Between(-3, 3);
+            const targetTX = tx + dx;
+            const targetTY = ty + dy;
+            // Constrain to patrol room if set
+            if (this.patrolRoom) {
+                const r = this.patrolRoom;
+                if (targetTX < r.x + 1 || targetTX >= r.x + r.width - 1 ||
+                    targetTY < r.y + 1 || targetTY >= r.y + r.height - 1) {
+                    return; // Skip — target is outside room
+                }
+            }
+            if (dungeon.isWalkable(targetTX, targetTY)) {
                 this.patrolTarget = {
-                    x: (tx + dx) * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
-                    y: (ty + dy) * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2
+                    x: targetTX * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
+                    y: targetTY * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2
                 };
             }
             return;
@@ -411,6 +421,14 @@ class Enemy {
 
         // Use physics velocity
         this.sprite.body.setVelocity(velX, velY);
+
+        // Enemy footstep audio (throttled)
+        if (!this._footstepTimer) this._footstepTimer = 0;
+        this._footstepTimer -= delta;
+        if (this._footstepTimer <= 0) {
+            AUDIO.playEnemyFootstep();
+            this._footstepTimer = 400; // ms between enemy footsteps
+        }
 
         // Tile-based collision prediction: zero out axes that would enter walls
         const dt = delta / 1000;

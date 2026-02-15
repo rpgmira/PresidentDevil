@@ -12,7 +12,12 @@ class CorruptionSystem {
     update(delta, player) {
         if (!player.alive) return;
 
-        // Decay when not in combat / moving
+        // Gain corruption while running
+        if (player.moving && !player.isAttacking) {
+            this.value += 0.3 * (delta / 1000);
+        }
+
+        // Decay when idle (not moving or attacking)
         if (!player.moving && !player.isAttacking) {
             const decayMult = player.getPassiveMult ? player.getPassiveMult('corruptDecay') : 1;
             this.value -= CONFIG.CORRUPTION_DECAY_RATE * (delta / 1000) * 10 * decayMult;
