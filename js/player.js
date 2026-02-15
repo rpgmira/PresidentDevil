@@ -125,7 +125,7 @@ class Player {
         }
 
         // Movement
-        this._handleMovement(dungeon);
+        this._handleMovement(delta, dungeon);
 
         // Update animation
         this._updateAnimation();
@@ -165,7 +165,7 @@ class Player {
         }
     }
 
-    _handleMovement(dungeon) {
+    _handleMovement(delta, dungeon) {
         let vx = 0;
         let vy = 0;
 
@@ -177,8 +177,16 @@ class Player {
 
         this.moving = (vx !== 0 || vy !== 0);
 
-        // Footstep audio
-        if (this.moving) AUDIO.playFootstep();
+        // Footstep audio (throttled to avoid per-frame calls)
+        if (this.moving) {
+            this._footstepTimer = (this._footstepTimer || 0) + delta;
+            if (this._footstepTimer >= 250) {
+                AUDIO.playFootstep();
+                this._footstepTimer = 0;
+            }
+        } else {
+            this._footstepTimer = 0;
+        }
 
         // Update facing direction (skip during attack so we keep facing the enemy)
         if (!this.isAttacking) {
@@ -196,30 +204,34 @@ class Player {
         }
 
         const speed = CONFIG.PLAYER_SPEED * this.getPassiveMult('speed');
-        const newX = this.sprite.x + vx * speed * (1 / 60);
-        const newY = this.sprite.y + vy * speed * (1 / 60);
 
-        // Tile-based collision
-        const halfSize = (CONFIG.TILE_SIZE - 2) / 2;
+        // Use Phaser physics velocity instead of manual position updates
+        this.sprite.body.setVelocity(vx * speed, vy * speed);
 
-        // Check X movement
-        const tileCheckX = Math.floor((newX + (vx > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
-        const tileCheckYForX1 = Math.floor((this.sprite.y - halfSize) / CONFIG.TILE_SIZE);
-        const tileCheckYForX2 = Math.floor((this.sprite.y + halfSize) / CONFIG.TILE_SIZE);
+        // Tile-based collision prediction: stop movement axes that would enter walls
+        if (this.moving) {
+            const dt = delta / 1000;
+            const halfSize = (CONFIG.TILE_SIZE - 2) / 2;
+            const predictX = this.sprite.x + vx * speed * dt;
+            const predictY = this.sprite.y + vy * speed * dt;
 
-        if (dungeon.isWalkable(tileCheckX, tileCheckYForX1) &&
-            dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
-            this.sprite.x = newX;
-        }
+            // Check X axis
+            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
+            const tileCheckYForX1 = Math.floor((this.sprite.y - halfSize) / CONFIG.TILE_SIZE);
+            const tileCheckYForX2 = Math.floor((this.sprite.y + halfSize) / CONFIG.TILE_SIZE);
+            if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
+                !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
+                this.sprite.body.setVelocityX(0);
+            }
 
-        // Check Y movement
-        const tileCheckY = Math.floor((newY + (vy > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
-        const tileCheckXForY1 = Math.floor((this.sprite.x - halfSize) / CONFIG.TILE_SIZE);
-        const tileCheckXForY2 = Math.floor((this.sprite.x + halfSize) / CONFIG.TILE_SIZE);
-
-        if (dungeon.isWalkable(tileCheckXForY1, tileCheckY) &&
-            dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
-            this.sprite.y = newY;
+            // Check Y axis
+            const tileCheckY = Math.floor((predictY + (vy > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
+            const tileCheckXForY1 = Math.floor((this.sprite.x - halfSize) / CONFIG.TILE_SIZE);
+            const tileCheckXForY2 = Math.floor((this.sprite.x + halfSize) / CONFIG.TILE_SIZE);
+            if (!dungeon.isWalkable(tileCheckXForY1, tileCheckY) ||
+                !dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
+                this.sprite.body.setVelocityY(0);
+            }
         }
 
         // Reveal room

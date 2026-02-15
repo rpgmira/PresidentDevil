@@ -166,6 +166,7 @@ class Enemy {
 
         if (this.stunTimer > 0) {
             this.stunTimer -= delta;
+            this.sprite.body.setVelocity(0, 0);
             return;
         }
 
@@ -215,6 +216,7 @@ class Enemy {
     _patrol(delta, dungeon) {
         if (this.patrolWaitTimer > 0) {
             this.patrolWaitTimer -= delta;
+            this.sprite.body.setVelocity(0, 0);
             return;
         }
 
@@ -304,18 +306,22 @@ class Enemy {
             if (this.isCharging) {
                 this.chargeDuration -= delta;
                 const chargeSpeed = this.chaseSpeed * 3;
-                const cvx = Math.cos(this.chargeDirection) * chargeSpeed * (delta / 1000);
-                const cvy = Math.sin(this.chargeDirection) * chargeSpeed * (delta / 1000);
-                const newX = this.sprite.x + cvx;
-                const newY = this.sprite.y + cvy;
-                const checkTX = Math.floor(newX / CONFIG.TILE_SIZE);
-                const checkTY = Math.floor(newY / CONFIG.TILE_SIZE);
-                if (dungeon.isWalkable(checkTX, checkTY)) {
-                    this.sprite.x = newX;
-                    this.sprite.y = newY;
+                // Use velocity for charge movement
+                this.sprite.body.setVelocity(
+                    Math.cos(this.chargeDirection) * chargeSpeed,
+                    Math.sin(this.chargeDirection) * chargeSpeed
+                );
+                // Wall collision check
+                const predictX = this.sprite.x + Math.cos(this.chargeDirection) * chargeSpeed * (delta / 1000);
+                const predictY = this.sprite.y + Math.sin(this.chargeDirection) * chargeSpeed * (delta / 1000);
+                const checkTX = Math.floor(predictX / CONFIG.TILE_SIZE);
+                const checkTY = Math.floor(predictY / CONFIG.TILE_SIZE);
+                if (!dungeon.isWalkable(checkTX, checkTY)) {
+                    this.sprite.body.setVelocity(0, 0);
                 }
                 if (this.chargeDuration <= 0) {
                     this.isCharging = false;
+                    this.sprite.body.setVelocity(0, 0);
                     this.chargeTimer = this.type === 'abomination' ? 5000 : 6000;
                     this._restoreColor();
                 }
@@ -350,6 +356,9 @@ class Enemy {
 
     _attack(player) {
         if (this.attackCooldown > 0) return;
+
+        // Stop moving during attack
+        this.sprite.body.setVelocity(0, 0);
 
         // Attack tell: brief wind-up flash before dealing damage
         this._showTellIndicator('⚡', 0xffff00);
@@ -397,21 +406,26 @@ class Enemy {
 
     _moveToward(targetX, targetY, speed, delta, dungeon) {
         const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, targetX, targetY);
-        const vx = Math.cos(angle) * speed * (delta / 1000);
-        const vy = Math.sin(angle) * speed * (delta / 1000);
+        const velX = Math.cos(angle) * speed;
+        const velY = Math.sin(angle) * speed;
 
-        const newX = this.sprite.x + vx;
-        const newY = this.sprite.y + vy;
+        // Use physics velocity
+        this.sprite.body.setVelocity(velX, velY);
 
+        // Tile-based collision prediction: zero out axes that would enter walls
+        const dt = delta / 1000;
         const halfSize = (CONFIG.TILE_SIZE - 4) / 2;
-        const tileX = Math.floor((newX + (vx > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
-        const tileY = Math.floor((newY + (vy > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
+        const predictX = this.sprite.x + velX * dt;
+        const predictY = this.sprite.y + velY * dt;
 
-        if (dungeon.isWalkable(tileX, Math.floor(this.sprite.y / CONFIG.TILE_SIZE))) {
-            this.sprite.x = newX;
+        const tileX = Math.floor((predictX + (velX > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
+        const tileY = Math.floor((predictY + (velY > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
+
+        if (!dungeon.isWalkable(tileX, Math.floor(this.sprite.y / CONFIG.TILE_SIZE))) {
+            this.sprite.body.setVelocityX(0);
         }
-        if (dungeon.isWalkable(Math.floor(this.sprite.x / CONFIG.TILE_SIZE), tileY)) {
-            this.sprite.y = newY;
+        if (!dungeon.isWalkable(Math.floor(this.sprite.x / CONFIG.TILE_SIZE), tileY)) {
+            this.sprite.body.setVelocityY(0);
         }
     }
 
