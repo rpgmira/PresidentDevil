@@ -43,12 +43,37 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(CONFIG.SCALE);
         this.cameras.main.setBackgroundColor('#000000');
 
+        // PointLight for atmospheric flashlight effect (GPU-accelerated)
+        this.playerLight = this.add.pointlight(
+            this.player.sprite.x, this.player.sprite.y,
+            0xffe8cc,  // warm yellowish light
+            CONFIG.VISIBILITY_RADIUS * 1.2,  // radius
+            0.15,      // intensity (subtle, supplements fog)
+            0.06       // attenuation
+        );
+        this.playerLight.setDepth(3);
+
         // Enemy manager
         this.enemyManager = new EnemyManager(this);
         this._spawnInitialEnemies();
 
+        // Physics group for enemy sprites (used in overlap detection)
+        this.enemySpriteGroup = this.physics.add.group();
+        for (const enemy of this.enemyManager.enemies) {
+            if (enemy.sprite) this.enemySpriteGroup.add(enemy.sprite);
+        }
+
         // Combat system
         this.combatSystem = new CombatSystem(this);
+
+        // Set up physics overlap: projectiles vs enemies
+        this.physics.add.overlap(
+            this.combatSystem.projectilePool,
+            this.enemySpriteGroup,
+            this._onProjectileHitEnemy,
+            null,
+            this
+        );
 
         // Corruption system
         this.corruption = new CorruptionSystem(this);
@@ -85,6 +110,11 @@ class GameScene extends Phaser.Scene {
         this.flickerOffset = 0;
         this.flickerTimer = 0;
 
+        // Fog dirty-flag tracking
+        this._fogDirty = true;
+        this._lastFogTileX = -1;
+        this._lastFogTileY = -1;
+
         // Render initial tiles
         this._renderWorld();
 
@@ -98,6 +128,23 @@ class GameScene extends Phaser.Scene {
         if (!this.player.alive) return;
 
         this.playerLabel.setPosition(this.player.sprite.x, this.player.sprite.y - 14);
+
+        // Update player light position
+        if (this.playerLight) {
+            this.playerLight.setPosition(this.player.sprite.x, this.player.sprite.y);
+            // Flicker the light intensity slightly for atmosphere
+            const flickerIntensity = this.panicState.active ? 0.04 : 0.02;
+            this.playerLight.intensity = 0.15 + (Math.random() - 0.5) * flickerIntensity;
+            // Red shift during high corruption
+            const corruptionPct = this.corruption ? this.corruption.value / CONFIG.CORRUPTION_MAX : 0;
+            if (corruptionPct > 0.5) {
+                const redShift = (corruptionPct - 0.5) * 2; // 0 to 1
+                const r = 0xff;
+                const g = Math.floor(0xe8 * (1 - redShift * 0.5));
+                const b = Math.floor(0xcc * (1 - redShift * 0.8));
+                this.playerLight.color.setTo(r, g, b);
+            }
+        }
 
         // Update player
         this.player.update(delta, this.dungeon);
@@ -170,11 +217,19 @@ class GameScene extends Phaser.Scene {
             // Subtle random flicker in visibility radius (±8px)
             const intensity = this.panicState.active ? 16 : 8;
             this.flickerOffset = (Math.random() - 0.5) * intensity;
+            this._fogDirty = true;
         }
 
-        // Render (single combined pass)
-        this._renderWorld();
-        this._renderWallOverlay();
+        // Render fog/wall overlays only when dirty (player moved >= 1 tile or flicker changed)
+        const playerTileX = Math.floor(this.player.sprite.x / CONFIG.TILE_SIZE);
+        const playerTileY = Math.floor(this.player.sprite.y / CONFIG.TILE_SIZE);
+        if (this._fogDirty || playerTileX !== this._lastFogTileX || playerTileY !== this._lastFogTileY) {
+            this._renderWorld();
+            this._renderWallOverlay();
+            this._lastFogTileX = playerTileX;
+            this._lastFogTileY = playerTileY;
+            this._fogDirty = false;
+        }
 
         // Periodic enemy cleanup
         if (time % 5000 < 20) {
@@ -417,36 +472,7 @@ class GameScene extends Phaser.Scene {
         for (const spawn of this.dungeon.itemSpawns) {
             const px = spawn.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = spawn.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-
-            const texKey = ITEM_SPRITE_GEN.getTextureKey(spawn.type);
-            let sprite;
-            if (texKey && this.textures.exists(texKey)) {
-                sprite = this.add.sprite(px, py, texKey);
-                sprite.setDisplaySize(12, 12);
-            } else {
-                let color;
-                if (spawn.type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-                else if (spawn.type === 'key') color = CONFIG.COLORS.ITEM_KEY;
-                else if (spawn.type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-                else if (spawn.type.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
-                else if (spawn.type.startsWith('passive')) color = CONFIG.COLORS.ITEM_PASSIVE;
-                else color = 0x888888;
-                sprite = this.add.rectangle(px, py, 8, 8, color);
-            }
-            sprite.setDepth(55);
-            sprite.setData('itemSpawn', spawn);
-            sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(spawn.type), '#dddddd'));
-            this.itemSprites.push(sprite);
-
-            // Gentle bob animation
-            this.tweens.add({
-                targets: sprite,
-                y: py - 2,
-                duration: 800,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            this._createItemSpriteAt(spawn, px, py);
         }
     }
 
@@ -698,7 +724,11 @@ class GameScene extends Phaser.Scene {
 
             const type = Math.random() < (0.5 + level * 0.1) ? 'lurker' : 'crawler';
             const panicDiffMult = 1 + level * 0.3; // escalate speed with corruption level
-            this.enemyManager.spawnAtPosition(x, y, type, panicDiffMult);
+            const enemy = this.enemyManager.spawnAtPosition(x, y, type, panicDiffMult);
+            // Add new enemy to physics group for overlap detection
+            if (enemy && enemy.sprite && this.enemySpriteGroup) {
+                this.enemySpriteGroup.add(enemy.sprite);
+            }
         }
 
         this.panicState.enemiesRemaining = count;
@@ -778,32 +808,7 @@ class GameScene extends Phaser.Scene {
 
             const px = lx * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = ly * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-
-            const texKey = ITEM_SPRITE_GEN.getTextureKey(type);
-            let sprite;
-            if (texKey && this.textures.exists(texKey)) {
-                sprite = this.add.sprite(px, py, texKey);
-                sprite.setDisplaySize(12, 12);
-            } else {
-                let color;
-                if (type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-                else if (type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-                else color = CONFIG.COLORS.ITEM_WEAPON;
-                sprite = this.add.rectangle(px, py, 8, 8, color);
-            }
-            sprite.setDepth(55);
-            sprite.setData('itemSpawn', spawn);
-            sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(type), '#dddddd'));
-            this.itemSprites.push(sprite);
-
-            this.tweens.add({
-                targets: sprite,
-                y: py - 2,
-                duration: 800,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            this._createItemSpriteAt(spawn, px, py);
         }
 
         // Reduce corruption slightly (relief phase)
@@ -1013,6 +1018,15 @@ class GameScene extends Phaser.Scene {
             // Must not be in a panic event
             if (this.panicState.active) return;
 
+            // All enemies in boss room must be dead
+            const aliveInBossRoom = this.enemyManager.getAliveEnemies().filter(e => {
+                const ex = Math.floor(e.sprite.x / CONFIG.TILE_SIZE);
+                const ey = Math.floor(e.sprite.y / CONFIG.TILE_SIZE);
+                return ex >= bossRoom.x && ex < bossRoom.x + bossRoom.width &&
+                       ey >= bossRoom.y && ey < bossRoom.y + bossRoom.height;
+            });
+            if (aliveInBossRoom.length > 0) return;
+
             this._won = true;
             this.cameras.main.flash(500, 0, 80, 0);
             this.time.delayedCall(1500, () => {
@@ -1020,6 +1034,36 @@ class GameScene extends Phaser.Scene {
                 this.scene.start('VictoryScene', { stats: this.player.stats });
             });
         }
+    }
+
+    // --- Physics overlap callback: projectile hits enemy ---
+    _onProjectileHitEnemy(projectileSprite, enemySprite) {
+        if (!projectileSprite.active || !enemySprite.active) return;
+
+        const enemy = enemySprite.getData('enemy');
+        if (!enemy || !enemy.alive) return;
+
+        // Find the projectile data from combat system
+        const projData = this.combatSystem.projectiles.find(
+            p => p.sprite === projectileSprite && p.alive
+        );
+        if (!projData) return;
+
+        // Deal damage
+        enemy.takeDamage(projData.damage);
+        if (!enemy.alive) {
+            this.player.stats.enemiesKilled++;
+        }
+        this.player.stats.damageDealt += projData.damage;
+
+        // Particle effects
+        if (this.particles) {
+            this.particles.hitSpark(projectileSprite.x, projectileSprite.y);
+            this.particles.bloodSplatter(projectileSprite.x, projectileSprite.y, 3);
+        }
+
+        // Deactivate projectile (return to pool)
+        projData.alive = false;
     }
 
     dropItem(item, worldX, worldY) {
@@ -1037,29 +1081,33 @@ class GameScene extends Phaser.Scene {
         const spawn = { x: Math.floor(worldX / CONFIG.TILE_SIZE), y: Math.floor(worldY / CONFIG.TILE_SIZE), type: spawnType };
         this.dungeon.itemSpawns.push(spawn);
 
-        const px = worldX;
-        const py = worldY;
+        this._createItemSpriteAt(spawn, worldX, worldY);
+    }
 
-        const texKey = ITEM_SPRITE_GEN.getTextureKey(spawnType);
+    // --- Shared helper: create an item sprite at world coords, add to itemSprites array ---
+    _createItemSpriteAt(spawn, px, py) {
+        const texKey = ITEM_SPRITE_GEN.getTextureKey(spawn.type);
         let sprite;
         if (texKey && this.textures.exists(texKey)) {
             sprite = this.add.sprite(px, py, texKey);
             sprite.setDisplaySize(12, 12);
         } else {
             let color;
-            if (spawnType === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
-            else if (spawnType === 'key') color = CONFIG.COLORS.ITEM_KEY;
-            else if (spawnType.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
-            else if (spawnType.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
-            else if (spawnType === 'repair_kit') color = 0x88ff88;
+            if (spawn.type === 'health') color = CONFIG.COLORS.ITEM_HEALTH;
+            else if (spawn.type === 'key') color = CONFIG.COLORS.ITEM_KEY;
+            else if (spawn.type.startsWith('ammo')) color = CONFIG.COLORS.ITEM_AMMO;
+            else if (spawn.type.startsWith('weapon')) color = CONFIG.COLORS.ITEM_WEAPON;
+            else if (spawn.type.startsWith('passive')) color = CONFIG.COLORS.ITEM_PASSIVE;
+            else if (spawn.type === 'repair_kit') color = 0x88ff88;
             else color = 0x888888;
             sprite = this.add.rectangle(px, py, 8, 8, color);
         }
         sprite.setDepth(55);
         sprite.setData('itemSpawn', spawn);
-        sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(spawnType), '#dddddd'));
+        sprite.setData('label', this._createWorldLabel(px, py - 12, this._getItemLabel(spawn.type), '#dddddd'));
         this.itemSprites.push(sprite);
 
+        // Gentle bob animation
         this.tweens.add({
             targets: sprite,
             y: py - 2,
@@ -1068,6 +1116,8 @@ class GameScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        return sprite;
     }
 
     _createWorldLabel(x, y, text, color) {
@@ -1107,5 +1157,51 @@ class GameScene extends Phaser.Scene {
         if (type === 'sealed') return 'SEALED';
         if (type === 'shortcut') return 'SHORTCUT';
         return 'DOOR';
+    }
+
+    // --- Cleanup on scene transition to prevent memory leaks ---
+    shutdown() {
+        // Clean up particles
+        if (this.particles) this.particles.cleanup();
+
+        // Clean up combat projectiles
+        if (this.combatSystem) this.combatSystem.cleanup();
+
+        // Clean up enemy display objects
+        for (const enemy of this.enemyManager.enemies) {
+            if (enemy.label) enemy.label.destroy();
+            if (enemy.hpBarBg) enemy.hpBarBg.destroy();
+            if (enemy.hpBarFg) enemy.hpBarFg.destroy();
+            if (enemy.sprite) enemy.sprite.destroy();
+        }
+        this.enemyManager.enemies = [];
+
+        // Clean up item labels
+        for (const sprite of this.itemSprites) {
+            const label = sprite.getData('label');
+            if (label) label.destroy();
+        }
+        this.itemSprites = [];
+
+        // Clean up door labels
+        for (const sprite of this.doorSprites) {
+            const label = sprite.getData('label');
+            if (label) label.destroy();
+        }
+        this.doorSprites = [];
+
+        // Clean up player label
+        if (this.playerLabel) this.playerLabel.destroy();
+
+        // Clean up player light
+        if (this.playerLight) this.playerLight.destroy();
+
+        // Clean up graphics
+        if (this.fogGraphics) this.fogGraphics.destroy();
+        if (this.wallOverlayGraphics) this.wallOverlayGraphics.destroy();
+        if (this.tileRT) this.tileRT.destroy();
+
+        // Stop all audio
+        AUDIO.stopAll();
     }
 }

@@ -6,6 +6,26 @@ class CombatSystem {
     constructor(scene) {
         this.scene = scene;
         this.projectiles = [];
+
+        // Generate projectile textures for pooling
+        this._generateProjectileTextures();
+
+        // Create a physics group pool for projectiles (max 50 active at once)
+        this.projectilePool = scene.physics.add.group({
+            defaultKey: 'projectile_bullet',
+            maxSize: 50,
+            active: false,
+            visible: false
+        });
+    }
+
+    _generateProjectileTextures() {
+        if (this.scene.textures.exists('projectile_bullet')) return;
+        const gfx = this.scene.make.graphics({ add: false });
+        gfx.fillStyle(0xffaa44, 1);
+        gfx.fillRect(0, 0, 4, 4);
+        gfx.generateTexture('projectile_bullet', 4, 4);
+        gfx.destroy();
     }
 
     update(delta, player, enemyManager, corruption) {
@@ -198,14 +218,20 @@ class CombatSystem {
 
     _spawnProjectile(x, y, angle, weapon) {
         const speed = 200;
-        const projectile = this.scene.add.rectangle(
-            x, y, 4, 4, 0xffaa44
-        );
-        this.scene.physics.add.existing(projectile);
+
+        // Get a recycled sprite from the pool
+        const projectile = this.projectilePool.get(x, y, 'projectile_bullet');
+        if (!projectile) return; // Pool full
+
+        projectile.setActive(true);
+        projectile.setVisible(true);
+        projectile.setPosition(x, y);
+        projectile.body.enable = true;
         projectile.body.setVelocity(
             Math.cos(angle) * speed,
             Math.sin(angle) * speed
         );
+
         this.projectiles.push({
             sprite: projectile,
             damage: weapon.damage,
@@ -268,7 +294,8 @@ class CombatSystem {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
             if (!proj.alive) {
-                proj.sprite.destroy();
+                // Return to pool instead of destroying
+                this._recycleProjectile(proj);
                 this.projectiles.splice(i, 1);
                 continue;
             }
@@ -291,28 +318,25 @@ class CombatSystem {
                 continue;
             }
 
-            // Check enemy collision
-            const nearEnemies = enemyManager.getEnemiesInRange(
-                proj.sprite.x, proj.sprite.y, 8
-            );
-            if (nearEnemies.length > 0) {
-                nearEnemies[0].takeDamage(proj.damage);
-                if (!nearEnemies[0].alive) {
-                    this.scene.player.stats.enemiesKilled++;
-                }
-                this.scene.player.stats.damageDealt += proj.damage;
-                if (this.scene.particles) {
-                    this.scene.particles.hitSpark(proj.sprite.x, proj.sprite.y);
-                    this.scene.particles.bloodSplatter(proj.sprite.x, proj.sprite.y, 3);
-                }
-                proj.alive = false;
+            // Enemy collision is handled by Phaser physics.overlap callback
+            // (set up in GameScene.create via _onProjectileHitEnemy)
+        }
+    }
+
+    _recycleProjectile(proj) {
+        if (proj.sprite) {
+            proj.sprite.setActive(false);
+            proj.sprite.setVisible(false);
+            if (proj.sprite.body) {
+                proj.sprite.body.setVelocity(0, 0);
+                proj.sprite.body.enable = false;
             }
         }
     }
 
     cleanup() {
         for (const proj of this.projectiles) {
-            if (proj.sprite) proj.sprite.destroy();
+            this._recycleProjectile(proj);
         }
         this.projectiles = [];
     }

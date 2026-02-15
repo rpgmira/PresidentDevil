@@ -1,90 +1,138 @@
 // ============================================
 // President Devil — Particle Effects System
+// Uses Phaser 3.60+ built-in ParticleEmitter for GPU-accelerated effects
 // ============================================
 
 class ParticleSystem {
     constructor(scene) {
         this.scene = scene;
-        this.particles = [];
+
+        // Generate tiny textures for particles (1-frame each)
+        this._generateParticleTextures();
+
+        // Create persistent emitters for frequent effects
+        this._createEmitters();
     }
 
-    update(delta) {
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.life -= delta;
-            if (p.life <= 0) {
-                p.sprite.destroy();
-                this.particles.splice(i, 1);
-                continue;
-            }
+    _generateParticleTextures() {
+        const scene = this.scene;
+        const sizes = [
+            { key: 'particle_2', size: 2 },
+            { key: 'particle_3', size: 3 },
+            { key: 'particle_4', size: 4 },
+            { key: 'particle_6', size: 6 }
+        ];
 
-            // Move
-            p.sprite.x += p.vx * (delta / 1000);
-            p.sprite.y += p.vy * (delta / 1000);
-
-            // Apply gravity if any
-            p.vy += (p.gravity || 0) * (delta / 1000);
-
-            // Fade
-            const alpha = Math.min(1, p.life / p.fadeStart);
-            p.sprite.setAlpha(alpha * p.startAlpha);
-
-            // Shrink
-            if (p.shrink) {
-                const scale = p.life / p.maxLife;
-                p.sprite.setScale(scale);
-            }
+        for (const { key, size } of sizes) {
+            if (scene.textures.exists(key)) continue;
+            const gfx = scene.make.graphics({ add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillRect(0, 0, size, size);
+            gfx.generateTexture(key, size, size);
+            gfx.destroy();
         }
+    }
+
+    _createEmitters() {
+        // Blood emitter — reused for bloodSplatter calls
+        this.bloodEmitter = this.scene.add.particles(0, 0, 'particle_2', {
+            speed: { min: 20, max: 80 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            lifespan: { min: 300, max: 800 },
+            gravityY: 40,
+            tint: CONFIG.COLORS.BLOOD,
+            emitting: false
+        });
+        this.bloodEmitter.setDepth(2);
+
+        // Death burst emitter — for larger blood chunks
+        this.deathBurstEmitter = this.scene.add.particles(0, 0, 'particle_4', {
+            speed: { min: 15, max: 45 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0.3 },
+            alpha: { start: 0.9, end: 0 },
+            lifespan: 800,
+            gravityY: 20,
+            tint: 0xaa0000,
+            emitting: false
+        });
+        this.deathBurstEmitter.setDepth(2);
+
+        // Corruption wisps emitter
+        this.corruptionEmitter = this.scene.add.particles(0, 0, 'particle_2', {
+            speed: { min: 30, max: 70 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            lifespan: { min: 500, max: 800 },
+            gravityY: -15,
+            tint: [0x8a1a3a, 0x661133, 0x993355, 0x440022],
+            emitting: false
+        });
+        this.corruptionEmitter.setDepth(57);
+
+        // Muzzle flash emitter
+        this.muzzleEmitter = this.scene.add.particles(0, 0, 'particle_6', {
+            speed: { min: 10, max: 30 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            lifespan: 80,
+            tint: 0xffdd44,
+            emitting: false
+        });
+        this.muzzleEmitter.setDepth(61);
+
+        // Muzzle sparks emitter
+        this.sparkEmitter = this.scene.add.particles(0, 0, 'particle_2', {
+            speed: { min: 40, max: 80 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            lifespan: { min: 120, max: 200 },
+            tint: 0xffaa22,
+            emitting: false
+        });
+        this.sparkEmitter.setDepth(61);
+
+        // Hit spark emitter
+        this.hitSparkEmitter = this.scene.add.particles(0, 0, 'particle_3', {
+            speed: { min: 30, max: 60 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            lifespan: { min: 100, max: 180 },
+            tint: 0xffffff,
+            emitting: false
+        });
+        this.hitSparkEmitter.setDepth(61);
+
+        // Pickup sparkle emitter
+        this.pickupEmitter = this.scene.add.particles(0, 0, 'particle_2', {
+            speed: 25,
+            scale: { start: 1, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 300,
+            gravityY: 30,
+            emitting: false
+        });
+        this.pickupEmitter.setDepth(61);
+    }
+
+    // No per-frame update needed — Phaser handles it internally
+    update(delta) {
+        // Built-in emitters self-manage — no manual update required
     }
 
     // Blood splatter — on enemy hit/death
     bloodSplatter(x, y, count = 5) {
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 20 + Math.random() * 60;
-            const size = 2 + Math.random() * 3;
-            const life = 300 + Math.random() * 500;
-
-            const sprite = this.scene.add.rectangle(x, y, size, size, CONFIG.COLORS.BLOOD);
-            sprite.setDepth(2);
-            sprite.setAlpha(0.8);
-
-            this.particles.push({
-                sprite,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life, maxLife: life,
-                fadeStart: life * 0.5,
-                startAlpha: 0.8,
-                gravity: 40,
-                shrink: true
-            });
-        }
+        this.bloodEmitter.emitParticleAt(x, y, count);
     }
 
     // Death burst — larger blood explosion
     deathBurst(x, y) {
         this.bloodSplatter(x, y, 12);
-        // Add some larger chunks
-        for (let i = 0; i < 4; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 15 + Math.random() * 30;
-            const size = 3 + Math.random() * 4;
-
-            const sprite = this.scene.add.rectangle(x, y, size, size, 0xaa0000);
-            sprite.setDepth(2);
-
-            this.particles.push({
-                sprite,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 800, maxLife: 800,
-                fadeStart: 600,
-                startAlpha: 0.9,
-                gravity: 20,
-                shrink: false
-            });
-        }
+        this.deathBurstEmitter.emitParticleAt(x, y, 4);
     }
 
     // Corruption wisps — swirl around player at high corruption
@@ -95,25 +143,7 @@ class ParticleSystem {
             const dist = 8 + Math.random() * 20;
             const px = x + Math.cos(angle) * dist;
             const py = y + Math.sin(angle) * dist;
-
-            const colors = [0x8a1a3a, 0x661133, 0x993355, 0x440022];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-
-            const sprite = this.scene.add.rectangle(px, py, 2, 2, color);
-            sprite.setDepth(57);
-
-            const orbitSpeed = (Math.random() > 0.5 ? 1 : -1) * (30 + Math.random() * 40);
-            this.particles.push({
-                sprite,
-                vx: Math.cos(angle + Math.PI / 2) * orbitSpeed,
-                vy: Math.sin(angle + Math.PI / 2) * orbitSpeed,
-                life: 500 + Math.random() * 300,
-                maxLife: 800,
-                fadeStart: 400,
-                startAlpha: 0.6,
-                gravity: -15,
-                shrink: true
-            });
+            this.corruptionEmitter.emitParticleAt(px, py, 1);
         }
     }
 
@@ -122,83 +152,32 @@ class ParticleSystem {
         const flashX = x + Math.cos(angle) * 8;
         const flashY = y + Math.sin(angle) * 8;
 
-        const flash = this.scene.add.rectangle(flashX, flashY, 6, 6, 0xffdd44);
-        flash.setDepth(61);
-        flash.setAlpha(0.9);
+        this.muzzleEmitter.emitParticleAt(flashX, flashY, 1);
 
-        this.particles.push({
-            sprite: flash,
-            vx: Math.cos(angle) * 20,
-            vy: Math.sin(angle) * 20,
-            life: 80, maxLife: 80,
-            fadeStart: 60,
-            startAlpha: 0.9,
-            shrink: true
-        });
-
-        // Sparks
-        for (let i = 0; i < 3; i++) {
-            const sparkAngle = angle + (Math.random() - 0.5) * 0.8;
-            const spark = this.scene.add.rectangle(flashX, flashY, 2, 2, 0xffaa22);
-            spark.setDepth(61);
-
-            this.particles.push({
-                sprite: spark,
-                vx: Math.cos(sparkAngle) * (40 + Math.random() * 40),
-                vy: Math.sin(sparkAngle) * (40 + Math.random() * 40),
-                life: 120 + Math.random() * 80,
-                maxLife: 200,
-                fadeStart: 100,
-                startAlpha: 0.8,
-                shrink: true
-            });
-        }
+        // Sparks in firing direction
+        const degAngle = Phaser.Math.RadToDeg(angle);
+        this.sparkEmitter.setParticleAngle({ min: degAngle - 25, max: degAngle + 25 });
+        this.sparkEmitter.emitParticleAt(flashX, flashY, 3);
     }
 
     // Hit spark — when projectile hits
     hitSpark(x, y) {
-        for (let i = 0; i < 4; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const sprite = this.scene.add.rectangle(x, y, 3, 3, 0xffffff);
-            sprite.setDepth(61);
-
-            this.particles.push({
-                sprite,
-                vx: Math.cos(angle) * (30 + Math.random() * 30),
-                vy: Math.sin(angle) * (30 + Math.random() * 30),
-                life: 100 + Math.random() * 80,
-                maxLife: 180,
-                fadeStart: 80,
-                startAlpha: 0.9,
-                shrink: true
-            });
-        }
+        this.hitSparkEmitter.emitParticleAt(x, y, 4);
     }
 
     // Item pickup sparkle
     pickupSparkle(x, y, color = 0xffffff) {
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const sprite = this.scene.add.rectangle(x, y, 2, 2, color);
-            sprite.setDepth(61);
-
-            this.particles.push({
-                sprite,
-                vx: Math.cos(angle) * 25,
-                vy: Math.sin(angle) * 25 - 15,
-                life: 300, maxLife: 300,
-                fadeStart: 200,
-                startAlpha: 1,
-                gravity: 30,
-                shrink: true
-            });
-        }
+        this.pickupEmitter.setParticleTint(color);
+        this.pickupEmitter.emitParticleAt(x, y, 6);
     }
 
     cleanup() {
-        for (const p of this.particles) {
-            if (p.sprite) p.sprite.destroy();
-        }
-        this.particles = [];
+        if (this.bloodEmitter) this.bloodEmitter.destroy();
+        if (this.deathBurstEmitter) this.deathBurstEmitter.destroy();
+        if (this.corruptionEmitter) this.corruptionEmitter.destroy();
+        if (this.muzzleEmitter) this.muzzleEmitter.destroy();
+        if (this.sparkEmitter) this.sparkEmitter.destroy();
+        if (this.hitSparkEmitter) this.hitSparkEmitter.destroy();
+        if (this.pickupEmitter) this.pickupEmitter.destroy();
     }
 }
