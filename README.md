@@ -1,0 +1,107 @@
+# 🔴 PRESIDENT DEVIL
+
+**"A survival horror where combat becomes uncontrollable."**
+
+A top-down roguelike built with [Phaser 3](https://phaser.io/) — explore a procedurally generated presidential compound, fight possessed staff and demonic creatures, and survive chaotic panic events where your weapons evolve but the danger spirals out of control.
+
+![Status](https://img.shields.io/badge/status-prototype-orange) ![Phaser](https://img.shields.io/badge/engine-Phaser%203.80-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+
+## Story
+
+The President of the country is, in fact, the Devil. You play as his personal assistant — a woman who discovers the horrifying truth and must survive the chaos unfolding inside the presidential compound. She's resourceful, not a soldier, improvising with whatever she can find.
+
+## Play
+
+No install required — just open in a browser:
+
+```bash
+npx -y http-server -p 8080 -c-1
+```
+
+Then visit **http://localhost:8080**
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| **WASD** / Arrow Keys | Move |
+| **Mouse** | Aim |
+| **Click** | Fire ranged weapon |
+| **0** | Equip fists (default melee) |
+| **1–6** | Select inventory slot |
+| **Q** | Drop selected item |
+
+## Features
+
+### Core Loop: Tension → Chaos → Relief → Vulnerability
+
+- **Explore** — Dark, procedural rooms with fog of war and limited visibility
+- **Trigger** — Corruption builds from combat and noise, triggering panic events
+- **Panic** — Doors seal, enemies flood in waves, weapons temporarily evolve
+- **Aftermath** — Power fades, loot drops, but the world is now more dangerous
+
+### Implemented (Phase 1)
+
+- 🗺️ **Procedural Dungeon** — Rooms, corridors, doors (normal, locked, sealed)
+- ⚔️ **Dual-Wield Combat** — Auto-melee + manual ranged, running simultaneously
+- 🔫 **Weapons** — Fists, knife, bat, chainsaw, handgun, shotgun, crossbow, grenades
+- 🔧 **Durability & Repair** — Melee weapons break with use, repair kits restore them
+- 👹 **Enemies** — Crawlers (fast, weak) and Lurkers (slow, strong) with patrol/chase/investigate AI
+- 🔊 **Noise System** — Loud weapons attract nearby enemies
+- 🌀 **Corruption** — Builds from combat, increases difficulty, triggers panic events
+- ⚡ **Weapon Evolutions** — Random power-ups during panic (Frenzy, Slam, Spread Shot, Piercing, Berserker)
+- 🎒 **Inventory** — 6 slots for weapons, ammo, keys, repair kits. Drop items with Q
+- 🗝️ **Locked Doors** — Find keys to access new areas
+- 🌑 **Fog of War** — Explored areas stay dimly visible, entities fade in darkness
+- 📊 **HUD** — Health, corruption meter, minimap, inventory bar, weapon info
+- 🏆 **Win Condition** — Reach the boss room to escape
+- 💀 **Permadeath** — Death ends the run with full stats
+
+### Design Principle
+
+> **Power creates danger, not safety.**
+>
+> Fighting increases corruption. Higher corruption = stronger enemies, more frequent hordes. Strong builds spawn stronger enemies. Avoiding fights can be safer — but riskier in other ways.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Engine | Phaser 3.80.1 (CDN) |
+| Client | Vanilla HTML + JavaScript |
+| Server | Static file server (any) |
+
+## Project Structure
+
+```
+├── index.html              # Entry point
+├── js/
+│   ├── main.js             # Phaser game config
+│   ├── constants.js        # All game configuration
+│   ├── dungeon.js          # Procedural generation
+│   ├── player.js           # Player controller & inventory
+│   ├── enemies.js          # Enemy AI & spawning
+│   ├── combat.js           # Melee, ranged, projectiles
+│   ├── corruption.js       # Corruption/noise system
+│   └── scenes/
+│       ├── TitleScene.js    # Title screen
+│       ├── GameScene.js     # Main gameplay
+│       ├── HUDScene.js      # Overlay HUD (zoom-independent)
+│       ├── DeathScene.js    # Death screen with stats
+│       └── VictoryScene.js  # Victory screen
+├── PLAN.md                 # Full development roadmap
+└── REFERENCE.png           # Concept art reference
+```
+
+## Roadmap
+
+- **Phase 1** ✅ Playable prototype (single player)
+- **Phase 2** 🔲 Polish & content (audio, sprites, particle effects, enemy variety)
+- **Phase 3** 🔲 Multiplayer (WebSocket co-op/competitive)
+- **Phase 4** 🔲 Expansion (bosses, biomes, story, daily challenges)
+
+See [PLAN.md](PLAN.md) for the full roadmap with detailed tasks.
+
+## License
+
+MIT
