@@ -34,6 +34,7 @@ class GameScene extends Phaser.Scene {
         // Create player in start room
         const startRoom = this.dungeon.rooms.find(r => r.type === 'start') || this.dungeon.rooms[0];
         this.player = new Player(this, startRoom.centerX, startRoom.centerY);
+        META.applyToPlayer(this.player);
         this.playerLabel = this._createWorldLabel(this.player.sprite.x, this.player.sprite.y - 14, 'YOU', '#ffffff');
         this.dungeon.revealRoom(startRoom);
 
@@ -86,6 +87,11 @@ class GameScene extends Phaser.Scene {
 
         // Render initial tiles
         this._renderWorld();
+
+        // Start ambient audio
+        AUDIO.startAmbience();
+        AUDIO.startExplorationMusic();
+        AUDIO.startHeartbeat(this.corruption.value / CONFIG.CORRUPTION_MAX);
     }
 
     update(time, delta) {
@@ -510,6 +516,7 @@ class GameScene extends Phaser.Scene {
                     }
 
                     if (picked) {
+                        AUDIO.playPickup();
                         // Pickup sparkle
                         if (this.particles) {
                             let sparkleColor = 0xffffff;
@@ -590,6 +597,7 @@ class GameScene extends Phaser.Scene {
                         door.open = true;
                         door.type = 'normal';
                         sprite.setVisible(false);
+                        AUDIO.playDoorOpen();
                         const label = sprite.getData('label');
                         if (label) label.setVisible(false);
                     }
@@ -599,12 +607,14 @@ class GameScene extends Phaser.Scene {
                     if (playerRoom === door.sourceRoom || !door.sourceRoom) {
                         door.open = true;
                         sprite.setVisible(false);
+                        AUDIO.playDoorOpen();
                         const label = sprite.getData('label');
                         if (label) label.setVisible(false);
                     }
                 } else if (door.type === 'normal' && !door.room.doorsSealed) {
                     door.open = true;
                     sprite.setVisible(false);
+                    AUDIO.playDoorOpen();
                     const label = sprite.getData('label');
                     if (label) label.setVisible(false);
                 }
@@ -644,6 +654,10 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(300, 0.005);
         this.cameras.main.flash(200, 100, 0, 0);
 
+        // Audio: sealed doors + panic music
+        AUDIO.playDoorSeal();
+        AUDIO.startPanicMusic();
+
         // Corruption spike
         this.corruption.add(10);
         this.corruption.setPanicTriggered();
@@ -657,7 +671,8 @@ class GameScene extends Phaser.Scene {
 
     _spawnPanicWave(room) {
         const level = this.corruption.getLevel();
-        const count = Math.floor(CONFIG.PANIC_ENEMIES_PER_WAVE * level);
+        const reduction = META.getPanicEnemyReduction();
+        const count = Math.max(1, Math.floor(CONFIG.PANIC_ENEMIES_PER_WAVE * level) - reduction);
 
         for (let i = 0; i < count; i++) {
             const edge = Phaser.Math.Between(0, 3);
@@ -721,6 +736,9 @@ class GameScene extends Phaser.Scene {
     _endPanicEvent() {
         this.panicState.active = false;
         const room = this.panicState.room;
+
+        // Switch back to exploration music
+        AUDIO.startExplorationMusic();
 
         // Unseal doors
         room.doorsSealed = false;
@@ -804,45 +822,118 @@ class GameScene extends Phaser.Scene {
         this.panicState.originalMelee = { ...this.player.meleeWeapon };
         this.panicState.originalRanged = this.player.rangedWeapon ? { ...this.player.rangedWeapon } : null;
 
-        // Choose a random evolution based on what the player has
-        const evolutions = [];
+        // Build pool of possible evolutions
+        const pool = [
+            { key: 'melee_frenzy', label: 'FRENZY MODE', desc: '2x attack speed, 1.5x melee damage' },
+            { key: 'melee_slam', label: 'SLAM MODE', desc: '3x melee damage, slower swings' },
+            { key: 'berserker', label: 'BERSERKER', desc: '2x speed both weapons, 50% damage taken' },
+        ];
 
-        // Melee evolutions
-        evolutions.push('melee_frenzy');  // 2x speed, 1.5x damage
-        evolutions.push('melee_slam');    // 3x damage, slow, AOE stun
-
-        // Ranged evolutions (only if player has ranged)
         if (this.player.rangedWeapon) {
-            evolutions.push('ranged_spread');   // Triple shot
-            evolutions.push('ranged_piercing'); // 2x damage, passes through
+            pool.push({ key: 'ranged_spread', label: 'SPREAD SHOT', desc: 'Triple projectile spread' });
+            pool.push({ key: 'ranged_piercing', label: 'PIERCING ROUNDS', desc: '2x ranged damage' });
         }
 
-        // General evolutions
-        evolutions.push('berserker');     // Both weapons 2x speed, player takes 50% damage
+        // Weapon-specific evolutions (synergy)
+        const meleeW = this.player.meleeWeapon;
+        if (meleeW.name === 'Chainsaw') {
+            pool.push({ key: 'chainsaw_rampage', label: 'RAMPAGE', desc: 'Chainsaw heals 5 HP per hit' });
+        }
+        if (meleeW.name === 'Knife') {
+            pool.push({ key: 'knife_assassin', label: 'ASSASSIN', desc: '4x damage from behind, double speed' });
+        }
+        if (this.player.rangedWeapon && this.player.rangedWeapon.name === 'Shotgun') {
+            pool.push({ key: 'shotgun_inferno', label: 'INFERNO SHELLS', desc: '5-way spread, 2x damage' });
+        }
 
-        const chosen = evolutions[Phaser.Math.Between(0, evolutions.length - 1)];
-        this.panicState.evolution = chosen;
+        // Passive synergy evolutions
+        const passiveKeys = this.player.passiveItems.map(p => p.key);
+        if (passiveKeys.includes('BLOOD_PACT') && passiveKeys.includes('ADRENALINE')) {
+            pool.push({ key: 'synergy_bloodrush', label: 'BLOOD RUSH', desc: '3x melee damage, 40% faster, heal on kill' });
+        }
+        if (passiveKeys.includes('IRON_BOOTS') && passiveKeys.includes('THICK_SKIN')) {
+            pool.push({ key: 'synergy_fortress', label: 'FORTRESS', desc: '75% damage reduction, AoE knockback on hit' });
+        }
 
-        switch (chosen) {
+        // Pick 3 random options from pool
+        Phaser.Utils.Array.Shuffle(pool);
+        const choices = pool.slice(0, Math.min(3, pool.length));
+
+        // Show choice UI — pause game actions
+        this._showEvolutionChoiceUI(choices);
+    }
+
+    _showEvolutionChoiceUI(choices) {
+        // Semi-transparent overlay
+        const overlay = this.add.rectangle(
+            this.cameras.main.scrollX + CONFIG.GAME_WIDTH / 2,
+            this.cameras.main.scrollY + CONFIG.GAME_HEIGHT / 2,
+            CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT, 0x000000, 0.6
+        ).setDepth(300).setScrollFactor(0).setOrigin(0.5);
+
+        const title = this.add.text(
+            CONFIG.GAME_WIDTH / 2, 80,
+            'CHOOSE EVOLUTION', {
+                fontSize: '18px', fill: '#ffcc00', fontFamily: 'monospace', fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(301).setScrollFactor(0);
+
+        const uiGroup = [overlay, title];
+        const cardWidth = 200;
+        const startX = CONFIG.GAME_WIDTH / 2 - (choices.length - 1) * (cardWidth + 20) / 2;
+
+        choices.forEach((choice, i) => {
+            const cx = startX + i * (cardWidth + 20);
+            const cy = CONFIG.GAME_HEIGHT / 2 - 20;
+
+            const card = this.add.rectangle(cx, cy, cardWidth, 140, 0x222244, 0.9)
+                .setStrokeStyle(2, 0xffcc00).setDepth(301).setScrollFactor(0)
+                .setInteractive({ useHandCursor: true });
+
+            const nameText = this.add.text(cx, cy - 40, choice.label, {
+                fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', fontStyle: 'bold',
+                align: 'center'
+            }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
+
+            const descText = this.add.text(cx, cy + 10, choice.desc, {
+                fontSize: '10px', fill: '#cccccc', fontFamily: 'monospace',
+                align: 'center', wordWrap: { width: cardWidth - 20 }
+            }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
+
+            uiGroup.push(card, nameText, descText);
+
+            card.on('pointerover', () => card.setStrokeStyle(3, 0xffffff));
+            card.on('pointerout', () => card.setStrokeStyle(2, 0xffcc00));
+            card.on('pointerdown', () => {
+                // Clean up UI
+                uiGroup.forEach(el => el.destroy());
+                // Apply chosen evolution
+                this._applyChosenEvolution(choice.key, choice.label);
+            });
+        });
+    }
+
+    _applyChosenEvolution(key, label) {
+        AUDIO.playEvolution();
+        this.panicState.evolution = key;
+        this.panicState.evolutionName = label;
+
+        switch (key) {
             case 'melee_frenzy':
                 this.player.meleeWeapon = { ...this.player.meleeWeapon, speed: this.player.meleeWeapon.speed * 0.5, damage: Math.floor(this.player.meleeWeapon.damage * 1.5) };
-                this.panicState.evolutionName = 'FRENZY MODE';
                 break;
             case 'melee_slam':
                 this.player.meleeWeapon = { ...this.player.meleeWeapon, speed: this.player.meleeWeapon.speed * 1.5, damage: Math.floor(this.player.meleeWeapon.damage * 3) };
-                this.panicState.evolutionName = 'SLAM MODE';
                 break;
             case 'ranged_spread':
                 if (this.player.rangedWeapon) {
                     this.player.rangedWeapon = { ...this.player.rangedWeapon, spread: (this.player.rangedWeapon.spread || 1) * 3 };
                 }
-                this.panicState.evolutionName = 'SPREAD SHOT';
                 break;
             case 'ranged_piercing':
                 if (this.player.rangedWeapon) {
                     this.player.rangedWeapon = { ...this.player.rangedWeapon, damage: Math.floor(this.player.rangedWeapon.damage * 2) };
                 }
-                this.panicState.evolutionName = 'PIERCING ROUNDS';
                 break;
             case 'berserker':
                 this.player.meleeWeapon = { ...this.player.meleeWeapon, speed: this.player.meleeWeapon.speed * 0.5, damage: Math.floor(this.player.meleeWeapon.damage * 1.3) };
@@ -850,7 +941,25 @@ class GameScene extends Phaser.Scene {
                     this.player.rangedWeapon = { ...this.player.rangedWeapon, speed: this.player.rangedWeapon.speed * 0.5 };
                 }
                 this.panicState.berserkerActive = true;
-                this.panicState.evolutionName = 'BERSERKER';
+                break;
+            case 'chainsaw_rampage':
+                this.player.meleeWeapon = { ...this.player.meleeWeapon, damage: Math.floor(this.player.meleeWeapon.damage * 1.5) };
+                this.panicState.healOnMelee = 5;
+                break;
+            case 'knife_assassin':
+                this.player.meleeWeapon = { ...this.player.meleeWeapon, damage: Math.floor(this.player.meleeWeapon.damage * 4), speed: this.player.meleeWeapon.speed * 0.5 };
+                break;
+            case 'shotgun_inferno':
+                if (this.player.rangedWeapon) {
+                    this.player.rangedWeapon = { ...this.player.rangedWeapon, spread: 5, damage: Math.floor(this.player.rangedWeapon.damage * 2) };
+                }
+                break;
+            case 'synergy_bloodrush':
+                this.player.meleeWeapon = { ...this.player.meleeWeapon, damage: Math.floor(this.player.meleeWeapon.damage * 3), speed: this.player.meleeWeapon.speed * 0.6 };
+                this.panicState.healOnMelee = 8;
+                break;
+            case 'synergy_fortress':
+                this.panicState.fortressActive = true;
                 break;
         }
 
@@ -886,6 +995,8 @@ class GameScene extends Phaser.Scene {
         }
 
         this.panicState.berserkerActive = false;
+        this.panicState.healOnMelee = 0;
+        this.panicState.fortressActive = false;
         this.panicState.originalMelee = null;
         this.panicState.originalRanged = null;
         this.panicState.evolution = null;

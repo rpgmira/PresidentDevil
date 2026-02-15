@@ -20,6 +20,9 @@ class CorruptionSystem {
 
         this.value = Phaser.Math.Clamp(this.value, 0, CONFIG.CORRUPTION_MAX);
 
+        // Update heartbeat intensity
+        AUDIO.updateHeartbeat(this.value / CONFIG.CORRUPTION_MAX);
+
         // Screen distortion at high corruption
         const intensity = this.value / CONFIG.CORRUPTION_MAX;
         if (intensity > 0.5) {

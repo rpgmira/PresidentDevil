@@ -15,6 +15,9 @@ class VictoryScene extends Phaser.Scene {
         const cx = CONFIG.GAME_WIDTH / 2;
         const cy = CONFIG.GAME_HEIGHT / 2;
 
+        // Process meta-progression
+        const metaResult = META.processRunEnd(this.stats, true);
+
         this.cameras.main.setBackgroundColor('#050a05');
 
         // Victory title
@@ -58,6 +61,13 @@ class VictoryScene extends Phaser.Scene {
             fill: '#888',
             fontFamily: 'monospace',
             lineSpacing: 6
+        }).setOrigin(0.5);
+
+        // Currency earned
+        this.add.text(cx, cy + 95, `Red Ink earned: +${metaResult.earned}  (Total: ${metaResult.total})`, {
+            fontSize: '11px',
+            fill: '#44aa44',
+            fontFamily: 'monospace'
         }).setOrigin(0.5);
 
         // Retry prompt

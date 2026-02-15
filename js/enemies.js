@@ -258,11 +258,23 @@ class Enemy {
                 const tx = Math.floor((player.sprite.x + Math.cos(angle) * 24) / CONFIG.TILE_SIZE);
                 const ty = Math.floor((player.sprite.y + Math.sin(angle) * 24) / CONFIG.TILE_SIZE);
                 if (dungeon.isWalkable(tx, ty)) {
+                    // Teleport warning: shimmer at destination
+                    const destX = tx * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                    const destY = ty * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                    const warnCircle = this.scene.add.circle(destX, destY, 8, 0x8800ff, 0.4).setDepth(50);
+                    this.scene.tweens.add({
+                        targets: warnCircle,
+                        alpha: 0, scaleX: 2.5, scaleY: 2.5,
+                        duration: 350,
+                        onComplete: () => warnCircle.destroy()
+                    });
+
                     // Teleport effect at old position
                     if (this.scene.particles) this.scene.particles.deathBurst(this.sprite.x, this.sprite.y);
-                    this.sprite.x = tx * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-                    this.sprite.y = ty * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                    this.sprite.x = destX;
+                    this.sprite.y = destY;
                     if (this.scene.particles) this.scene.particles.hitSpark(this.sprite.x, this.sprite.y);
+                    AUDIO.playJumpScare();
                     this.teleportCooldown = 4000;
                     return;
                 }
@@ -272,12 +284,23 @@ class Enemy {
         if ((this.type === 'brute' || this.type === 'abomination') && this.chargeTimer !== undefined) {
             this.chargeTimer -= delta;
             const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
-            if (!this.isCharging && this.chargeTimer <= 0 && dist < this.detectionRange * 0.5 && dist > CONFIG.ENEMY_ATTACK_RANGE * 2) {
-                this.isCharging = true;
-                this.chargeDirection = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
-                this.chargeDuration = 600;
-                this.sprite.setTint(0xffaa00);
+            if (!this.isCharging && !this._chargeWindup && this.chargeTimer <= 0 && dist < this.detectionRange * 0.5 && dist > CONFIG.ENEMY_ATTACK_RANGE * 2) {
+                // Wind-up tell: pause + red flash + exclamation before charge
+                this._chargeWindup = true;
+                this.sprite.setTint(0xff0000);
+                this._showTellIndicator('!', 0xff4444);
+                AUDIO.playJumpScare();
+                this.scene.time.delayedCall(400, () => {
+                    if (!this.alive) return;
+                    this._chargeWindup = false;
+                    this.isCharging = true;
+                    this.chargeDirection = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.sprite.x, player.sprite.y);
+                    this.chargeDuration = 600;
+                    this.sprite.setTint(0xffaa00);
+                });
+                return;
             }
+            if (this._chargeWindup) return;
             if (this.isCharging) {
                 this.chargeDuration -= delta;
                 const chargeSpeed = this.chaseSpeed * 3;
@@ -328,6 +351,9 @@ class Enemy {
     _attack(player) {
         if (this.attackCooldown > 0) return;
 
+        // Attack tell: brief wind-up flash before dealing damage
+        this._showTellIndicator('⚡', 0xffff00);
+
         // Abomination slam: area damage + screen shake
         if (this.type === 'abomination') {
             player.takeDamage(this.damage);
@@ -356,6 +382,19 @@ class Enemy {
         }
     }
 
+    _showTellIndicator(symbol, color) {
+        const indicator = this.scene.add.text(
+            this.sprite.x, this.sprite.y - 18, symbol,
+            { fontSize: '12px', fill: `#${color.toString(16).padStart(6, '0')}`, fontFamily: 'monospace', fontStyle: 'bold' }
+        ).setOrigin(0.5).setDepth(70);
+        this.scene.tweens.add({
+            targets: indicator,
+            y: indicator.y - 12, alpha: 0,
+            duration: 500,
+            onComplete: () => indicator.destroy()
+        });
+    }
+
     _moveToward(targetX, targetY, speed, delta, dungeon) {
         const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, targetX, targetY);
         const vx = Math.cos(angle) * speed * (delta / 1000);
@@ -380,6 +419,7 @@ class Enemy {
         if (!this.alive) return;
 
         this.hp -= amount;
+        AUDIO.playEnemyHurt();
 
         // Hit flash
         this.sprite.setTint(0xff4444);
@@ -398,6 +438,7 @@ class Enemy {
 
     die() {
         this.alive = false;
+        AUDIO.playEnemyDeath();
 
         // Death burst particles
         if (this.scene.particles) {

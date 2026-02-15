@@ -216,17 +216,17 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 **Goal:** Make the prototype feel good. Add variety and replayability.
 
 ### 2.1 — Audio (Stubbed in Phase 1)
-- [ ] Ambient soundscape (drones, hums, distant noises)
-- [ ] Footstep sounds (player + enemies)
-- [ ] Heartbeat that intensifies with corruption
-- [ ] Panic event music (chaotic, overwhelming)
-- [ ] Exploration music (minimal, tense)
-- [ ] Jump scare stingers
-- [ ] UI sounds (pickups, doors, inventory)
+- [x] Ambient soundscape (drones, hums, distant noises)
+- [x] Footstep sounds (player + enemies)
+- [x] Heartbeat that intensifies with corruption
+- [x] Panic event music (chaotic, overwhelming)
+- [x] Exploration music (minimal, tense)
+- [x] Jump scare stingers
+- [x] UI sounds (pickups, doors, inventory)
 
 ### 2.2 — Visual Polish
-- [ ] Sprite-based player and enemies (replace placeholder shapes)
-- [ ] Tile art for walls, floors, doors
+- [x] Sprite-based player and enemies (replace placeholder shapes)
+- [x] Tile art for walls, floors, doors
 - [x] Particle effects (blood, sparks, corruption wisps)
 - [x] Screen shake improvements
 - [x] Lighting improvements (dynamic shadows, flickering)
@@ -236,20 +236,20 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] 3-4 distinct enemy types with unique behaviors
 - [x] Enemy difficulty scaling with corruption
 - [x] Mini-boss enemies in later rooms
-- [ ] Enemy visual/audio tells
+- [x] Enemy visual/audio tells
 
 ### 2.4 — Build Variety
-- [ ] Multiple weapon base types
-- [ ] Weapon evolution trees during panic events
+- [x] Multiple weapon base types
+- [x] Weapon evolution trees during panic events
 - [x] Passive items that modify gameplay
-- [ ] Build synergies
+- [x] Build synergies
 
 ### 2.5 — Meta-Progression
-- [ ] Persistent currency earned per run
-- [ ] Unlock permanent upgrades between runs
-- [ ] Unlock new starting items
+- [x] Persistent currency earned per run
+- [x] Unlock permanent upgrades between runs
+- [x] Unlock new starting items
 - [ ] Unlock new room types / enemy types
-- [ ] Stats tracking across runs
+- [x] Stats tracking across runs
 
 ---
 

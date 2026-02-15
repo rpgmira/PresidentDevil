@@ -66,11 +66,27 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Start prompt
-        const startText = this.add.text(cx, cy + 160, '[ PRESS ANY KEY TO BEGIN ]', {
+        const startText = this.add.text(cx, cy + 150, '[ PRESS ANY KEY TO BEGIN ]', {
             fontSize: '14px',
             fill: '#cc4444',
             fontFamily: 'monospace'
         }).setOrigin(0.5);
+
+        // Meta-progression currency display
+        const metaData = META.load();
+        this.add.text(cx, cy + 185, `Red Ink: ${metaData.currency}  |  Runs: ${metaData.totalRuns}  |  Wins: ${metaData.totalWins}`, {
+            fontSize: '10px',
+            fill: '#885544',
+            fontFamily: 'monospace'
+        }).setOrigin(0.5);
+
+        // Upgrades button
+        const upgradeBtn = this.add.text(cx, cy + 215, '[ U — UPGRADES ]', {
+            fontSize: '12px',
+            fill: '#cc8844',
+            fontFamily: 'monospace'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        upgradeBtn.on('pointerdown', () => this._showUpgradeShop());
 
         // Blink effect
         this.tweens.add({
@@ -84,6 +100,10 @@ class TitleScene extends Phaser.Scene {
         const startGame = () => {
             if (this._startingGame) return;
             this._startingGame = true;
+
+            // Initialise audio on first user interaction
+            AUDIO.init();
+            AUDIO.resume();
 
             try {
                 this.scene.start('GameScene');
@@ -99,8 +119,126 @@ class TitleScene extends Phaser.Scene {
             }
         };
 
-        // Start on any key or click
-        this.input.keyboard.once('keydown', startGame);
+        // Start on any key (except U) or click
+        this.input.keyboard.on('keydown', (event) => {
+            if (event.key === 'u' || event.key === 'U') {
+                this._showUpgradeShop();
+            } else {
+                startGame();
+            }
+        });
         this.input.once('pointerdown', startGame);
+    }
+
+    _showUpgradeShop() {
+        if (this._shopOpen) return;
+        this._shopOpen = true;
+
+        const cx = CONFIG.GAME_WIDTH / 2;
+        const uiGroup = [];
+
+        // Overlay
+        const overlay = this.add.rectangle(cx, CONFIG.GAME_HEIGHT / 2, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT, 0x000000, 0.85)
+            .setDepth(100);
+        uiGroup.push(overlay);
+
+        const title = this.add.text(cx, 30, 'UPGRADES', {
+            fontSize: '24px', fill: '#cc8844', fontFamily: 'monospace', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(101);
+        uiGroup.push(title);
+
+        const metaData = META.load();
+        const currencyText = this.add.text(cx, 60, `Red Ink: ${metaData.currency}`, {
+            fontSize: '14px', fill: '#ffaa44', fontFamily: 'monospace'
+        }).setOrigin(0.5).setDepth(101);
+        uiGroup.push(currencyText);
+
+        let yOff = 95;
+
+        // Upgrades
+        const upgradeKeys = Object.keys(META.UPGRADE_DEFS);
+        for (const key of upgradeKeys) {
+            const def = META.UPGRADE_DEFS[key];
+            const level = metaData.upgrades[key] || 0;
+            const maxed = level >= def.maxLevel;
+            const cost = maxed ? '--' : def.cost[level];
+            const canBuy = !maxed && metaData.currency >= def.cost[level];
+
+            const label = `${def.name} [Lv${level}/${def.maxLevel}]  ${def.desc}  Cost: ${cost}`;
+            const color = maxed ? '#448844' : (canBuy ? '#cccccc' : '#666666');
+
+            const btn = this.add.text(cx, yOff, label, {
+                fontSize: '11px', fill: color, fontFamily: 'monospace'
+            }).setOrigin(0.5).setDepth(101);
+
+            if (canBuy) {
+                btn.setInteractive({ useHandCursor: true });
+                btn.on('pointerdown', () => {
+                    if (META.buyUpgrade(key)) {
+                        // Refresh shop
+                        uiGroup.forEach(el => el.destroy());
+                        this._shopOpen = false;
+                        this._showUpgradeShop();
+                    }
+                });
+                btn.on('pointerover', () => btn.setFill('#ffffff'));
+                btn.on('pointerout', () => btn.setFill(color));
+            }
+            uiGroup.push(btn);
+            yOff += 28;
+        }
+
+        yOff += 15;
+        const unlockTitle = this.add.text(cx, yOff, '— UNLOCKS —', {
+            fontSize: '12px', fill: '#cc8844', fontFamily: 'monospace'
+        }).setOrigin(0.5).setDepth(101);
+        uiGroup.push(unlockTitle);
+        yOff += 25;
+
+        const unlockKeys = Object.keys(META.UNLOCK_DEFS);
+        for (const key of unlockKeys) {
+            const def = META.UNLOCK_DEFS[key];
+            const owned = metaData.unlocks[key];
+            const canBuy = !owned && metaData.currency >= def.cost;
+
+            const label = owned
+                ? `✓ ${def.name} — ${def.desc}`
+                : `${def.name} — ${def.desc}  Cost: ${def.cost}`;
+            const color = owned ? '#448844' : (canBuy ? '#cccccc' : '#666666');
+
+            const btn = this.add.text(cx, yOff, label, {
+                fontSize: '11px', fill: color, fontFamily: 'monospace'
+            }).setOrigin(0.5).setDepth(101);
+
+            if (canBuy) {
+                btn.setInteractive({ useHandCursor: true });
+                btn.on('pointerdown', () => {
+                    if (META.buyUnlock(key)) {
+                        uiGroup.forEach(el => el.destroy());
+                        this._shopOpen = false;
+                        this._showUpgradeShop();
+                    }
+                });
+                btn.on('pointerover', () => btn.setFill('#ffffff'));
+                btn.on('pointerout', () => btn.setFill(color));
+            }
+            uiGroup.push(btn);
+            yOff += 28;
+        }
+
+        // Close button
+        const closeBtn = this.add.text(cx, CONFIG.GAME_HEIGHT - 40, '[ ESC / CLICK TO CLOSE ]', {
+            fontSize: '12px', fill: '#cc4444', fontFamily: 'monospace'
+        }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+        uiGroup.push(closeBtn);
+
+        const closeShop = () => {
+            uiGroup.forEach(el => el.destroy());
+            this._shopOpen = false;
+        };
+        closeBtn.on('pointerdown', closeShop);
+        overlay.setInteractive();
+        overlay.on('pointerdown', closeShop);
+        this.input.keyboard.once('keydown-ESC', closeShop);
     }
 }

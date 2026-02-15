@@ -60,6 +60,7 @@ class CombatSystem {
         const weapon = player.meleeWeapon;
         const meleeDmg = Math.floor(weapon.damage * player.getPassiveMult('meleeDamage'));
         closest.takeDamage(meleeDmg);
+        AUDIO.playMeleeHit(weapon.name);
         player.meleeCooldown = weapon.speed * player.getPassiveMult('meleeSpeed');
         player.stats.damageDealt += meleeDmg;
         player.isAttacking = true;
@@ -76,6 +77,7 @@ class CombatSystem {
                 if (item.durability <= 0) {
                     item.durability = 0;
                     // Weapon breaks — auto-fallback to fists
+                    AUDIO.playWeaponBreak();
                     player.activeMeleeSlot = -1;
                     player.meleeWeapon = CONFIG.WEAPONS.FISTS;
                 }
@@ -98,6 +100,11 @@ class CombatSystem {
         // Check if enemy died
         if (!closest.alive) {
             player.stats.enemiesKilled++;
+        }
+
+        // Evolution: heal on melee hit
+        if (this.scene.panicState && this.scene.panicState.healOnMelee) {
+            player.heal(this.scene.panicState.healOnMelee);
         }
 
         // Reset attack animation after brief delay
@@ -149,12 +156,15 @@ class CombatSystem {
                 const bulletAngle = angle + (i - (weapon.spread - 1) / 2) * spreadAngle;
                 this._spawnProjectile(pos.x, pos.y, bulletAngle, weapon);
             }
+            AUDIO.playGunshot(weapon.name);
             if (this.scene.particles) this.scene.particles.muzzleFlash(pos.x, pos.y, angle);
         } else if (weapon.aoeRadius) {
             // Grenade
+            AUDIO.playExplosion();
             this._spawnGrenade(pos.x, pos.y, worldPoint.x, worldPoint.y, weapon);
         } else {
             // Single projectile
+            AUDIO.playGunshot(weapon.name);
             this._spawnProjectile(pos.x, pos.y, angle, weapon);
             if (this.scene.particles) this.scene.particles.muzzleFlash(pos.x, pos.y, angle);
         }
