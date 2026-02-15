@@ -447,4 +447,214 @@ exportSprite('item_ammo_pistol', 16, 16, drawAmmoPistol,  ITEM_SCALE);
 exportSprite('item_ammo_shotgun',16, 16, drawAmmoShotgun, ITEM_SCALE);
 exportSprite('item_ammo_crossbow',16,16, drawAmmoCrossbow,ITEM_SCALE);
 
+// ════════════════════════════════════════════
+// TILES — Walls, Floors, Doors
+// ════════════════════════════════════════════
+const TILE_SCALE = 8; // 16px × 8 = 128px
+
+function drawTileWall(ctx, ox, oy) {
+    // Base stone fill
+    rect(ctx, ox, oy, 16, 16, '#8888aa');
+    // Brick row 1
+    rect(ctx, ox, oy, 16, 1, '#666680');
+    rect(ctx, ox, oy+1, 7, 3, '#9999bb');
+    rect(ctx, ox+8, oy+1, 8, 3, '#8888aa');
+    px(ctx, ox+7, oy+1, '#666680'); px(ctx, ox+7, oy+2, '#666680'); px(ctx, ox+7, oy+3, '#666680');
+    // Brick row 2
+    rect(ctx, ox, oy+4, 16, 1, '#666680');
+    rect(ctx, ox, oy+5, 3, 3, '#8888aa');
+    rect(ctx, ox+4, oy+5, 7, 3, '#9494b4');
+    rect(ctx, ox+12, oy+5, 4, 3, '#8c8cac');
+    px(ctx, ox+3, oy+5, '#666680'); px(ctx, ox+3, oy+6, '#666680'); px(ctx, ox+3, oy+7, '#666680');
+    px(ctx, ox+11, oy+5, '#666680'); px(ctx, ox+11, oy+6, '#666680'); px(ctx, ox+11, oy+7, '#666680');
+    // Brick row 3
+    rect(ctx, ox, oy+8, 16, 1, '#666680');
+    rect(ctx, ox, oy+9, 7, 3, '#8c8cac');
+    rect(ctx, ox+8, oy+9, 8, 3, '#9090b0');
+    px(ctx, ox+7, oy+9, '#666680'); px(ctx, ox+7, oy+10, '#666680'); px(ctx, ox+7, oy+11, '#666680');
+    // Brick row 4
+    rect(ctx, ox, oy+12, 16, 1, '#666680');
+    rect(ctx, ox, oy+13, 3, 3, '#9090b0');
+    rect(ctx, ox+4, oy+13, 7, 3, '#8888aa');
+    rect(ctx, ox+12, oy+13, 4, 3, '#9494b4');
+    px(ctx, ox+3, oy+13, '#666680'); px(ctx, ox+3, oy+14, '#666680'); px(ctx, ox+3, oy+15, '#666680');
+    px(ctx, ox+11, oy+13, '#666680'); px(ctx, ox+11, oy+14, '#666680'); px(ctx, ox+11, oy+15, '#666680');
+    // Highlights
+    px(ctx, ox+1, oy+1, '#a0a0c0'); px(ctx, ox+2, oy+1, '#a0a0c0');
+    px(ctx, ox+9, oy+1, '#9a9abc'); px(ctx, ox+10, oy+1, '#9a9abc');
+    px(ctx, ox+5, oy+5, '#a0a0c0'); px(ctx, ox+6, oy+5, '#a0a0c0');
+    // Shadows
+    px(ctx, ox+4, oy+3, '#7878a0'); px(ctx, ox+5, oy+3, '#7878a0');
+    px(ctx, ox+12, oy+7, '#7878a0'); px(ctx, ox+13, oy+7, '#7878a0');
+}
+
+function drawTileWallRitual(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#6a2020');
+    rect(ctx, ox, oy, 16, 1, '#4a1515');
+    rect(ctx, ox, oy+1, 7, 3, '#8a2828');
+    rect(ctx, ox+8, oy+1, 8, 3, '#7a2222');
+    px(ctx, ox+7, oy+1, '#4a1515'); px(ctx, ox+7, oy+2, '#4a1515'); px(ctx, ox+7, oy+3, '#4a1515');
+    rect(ctx, ox, oy+4, 16, 1, '#4a1515');
+    rect(ctx, ox, oy+5, 3, 3, '#7a2222');
+    rect(ctx, ox+4, oy+5, 7, 3, '#882828');
+    rect(ctx, ox+12, oy+5, 4, 3, '#802525');
+    px(ctx, ox+3, oy+5, '#4a1515'); px(ctx, ox+3, oy+6, '#4a1515'); px(ctx, ox+3, oy+7, '#4a1515');
+    px(ctx, ox+11, oy+5, '#4a1515'); px(ctx, ox+11, oy+6, '#4a1515'); px(ctx, ox+11, oy+7, '#4a1515');
+    rect(ctx, ox, oy+8, 16, 1, '#4a1515');
+    rect(ctx, ox, oy+9, 7, 3, '#802525');
+    rect(ctx, ox+8, oy+9, 8, 3, '#852727');
+    px(ctx, ox+7, oy+9, '#4a1515'); px(ctx, ox+7, oy+10, '#4a1515'); px(ctx, ox+7, oy+11, '#4a1515');
+    rect(ctx, ox, oy+12, 16, 1, '#4a1515');
+    rect(ctx, ox, oy+13, 3, 3, '#852727');
+    rect(ctx, ox+4, oy+13, 7, 3, '#7a2222');
+    rect(ctx, ox+12, oy+13, 4, 3, '#882828');
+    px(ctx, ox+3, oy+13, '#4a1515'); px(ctx, ox+3, oy+14, '#4a1515'); px(ctx, ox+3, oy+15, '#4a1515');
+    px(ctx, ox+11, oy+13, '#4a1515'); px(ctx, ox+11, oy+14, '#4a1515'); px(ctx, ox+11, oy+15, '#4a1515');
+    // Glowing rune accents
+    px(ctx, ox+2, oy, '#cc4422'); px(ctx, ox+10, oy, '#cc4422');
+    px(ctx, ox+6, oy+4, '#cc4422'); px(ctx, ox+14, oy+4, '#cc4422');
+    px(ctx, ox+5, oy+6, '#dd5533'); px(ctx, ox+6, oy+6, '#ee6644');
+    px(ctx, ox+5, oy+7, '#ee6644'); px(ctx, ox+6, oy+7, '#dd5533');
+}
+
+function drawTileFloorOffice(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#555578');
+    rect(ctx, ox, oy, 16, 1, '#4a4a6a');
+    rect(ctx, ox, oy, 1, 16, '#4a4a6a');
+    rect(ctx, ox, oy+8, 16, 1, '#4a4a6a');
+    rect(ctx, ox+8, oy, 1, 16, '#4a4a6a');
+    rect(ctx, ox+1, oy+1, 7, 7, '#5c5c82');
+    rect(ctx, ox+9, oy+1, 7, 7, '#585878');
+    rect(ctx, ox+1, oy+9, 7, 7, '#585878');
+    rect(ctx, ox+9, oy+9, 7, 7, '#5a5a7e');
+    px(ctx, ox+3, oy+3, '#505070');
+    px(ctx, ox+11, oy+5, '#505070');
+    px(ctx, ox+5, oy+11, '#626286');
+    px(ctx, ox+13, oy+13, '#505070');
+    px(ctx, ox+1, oy+1, '#666690');
+    px(ctx, ox+9, oy+9, '#666690');
+}
+
+function drawTileFloorCorridor(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#505060');
+    rect(ctx, ox, oy, 6, 5, '#525268');
+    rect(ctx, ox+6, oy, 5, 4, '#4c4c5c');
+    rect(ctx, ox+11, oy, 5, 6, '#4e4e60');
+    rect(ctx, ox, oy+5, 4, 5, '#4e4e5e');
+    rect(ctx, ox+4, oy+4, 6, 5, '#545468');
+    rect(ctx, ox+10, oy+6, 6, 5, '#4c4c5c');
+    rect(ctx, ox, oy+10, 5, 6, '#525264');
+    rect(ctx, ox+5, oy+9, 6, 7, '#4e4e60');
+    rect(ctx, ox+11, oy+11, 5, 5, '#525268');
+    // Cracks
+    px(ctx, ox+3, oy+2, '#3a3a4a'); px(ctx, ox+4, oy+3, '#3a3a4a'); px(ctx, ox+4, oy+4, '#3a3a4a');
+    px(ctx, ox+5, oy+5, '#3a3a4a'); px(ctx, ox+5, oy+6, '#3a3a4a');
+    px(ctx, ox+10, oy+10, '#3a3a4a'); px(ctx, ox+11, oy+11, '#3a3a4a'); px(ctx, ox+12, oy+11, '#3a3a4a');
+    px(ctx, ox+8, oy+1, '#3e3e50'); px(ctx, ox+9, oy+2, '#3e3e50');
+    // Pebbles
+    px(ctx, ox+1, oy+7, '#5a5a6e');
+    px(ctx, ox+7, oy+3, '#5a5a6e');
+    px(ctx, ox+12, oy+8, '#5a5a6e');
+}
+
+function drawTileFloorBoss(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#3a1818');
+    rect(ctx, ox, oy, 16, 1, '#2a1010');
+    rect(ctx, ox, oy, 1, 16, '#2a1010');
+    rect(ctx, ox, oy+8, 16, 1, '#2a1010');
+    rect(ctx, ox+8, oy, 1, 16, '#2a1010');
+    rect(ctx, ox+1, oy+1, 7, 7, '#3e1c1c');
+    rect(ctx, ox+9, oy+1, 7, 7, '#381616');
+    rect(ctx, ox+1, oy+9, 7, 7, '#401e1e');
+    rect(ctx, ox+9, oy+9, 7, 7, '#3c1a1a');
+    // Ritual markings
+    px(ctx, ox+2, oy+2, '#661818'); px(ctx, ox+3, oy+3, '#772222'); px(ctx, ox+4, oy+4, '#661818');
+    px(ctx, ox+11, oy+2, '#661818'); px(ctx, ox+12, oy+3, '#772222'); px(ctx, ox+13, oy+4, '#661818');
+    px(ctx, ox+2, oy+11, '#661818'); px(ctx, ox+3, oy+12, '#772222'); px(ctx, ox+4, oy+13, '#661818');
+    px(ctx, ox+11, oy+11, '#661818'); px(ctx, ox+12, oy+12, '#772222'); px(ctx, ox+13, oy+13, '#661818');
+    px(ctx, ox+7, oy+7, '#993333'); px(ctx, ox+8, oy+7, '#993333');
+    px(ctx, ox+7, oy+8, '#993333'); px(ctx, ox+8, oy+8, '#993333');
+    px(ctx, ox+5, oy+5, '#552222'); px(ctx, ox+10, oy+5, '#552222');
+    px(ctx, ox+5, oy+10, '#552222'); px(ctx, ox+10, oy+10, '#552222');
+    px(ctx, ox+7, oy+4, '#552222'); px(ctx, ox+8, oy+4, '#552222');
+    px(ctx, ox+7, oy+11, '#552222'); px(ctx, ox+8, oy+11, '#552222');
+}
+
+function drawTileDoor(ctx, ox, oy) {
+    rect(ctx, ox+1, oy, 14, 16, '#553311');
+    rect(ctx, ox+2, oy+1, 12, 14, '#886633');
+    rect(ctx, ox+2, oy+3, 12, 1, '#775522');
+    rect(ctx, ox+2, oy+7, 12, 1, '#775522');
+    rect(ctx, ox+2, oy+11, 12, 1, '#775522');
+    rect(ctx, ox+2, oy+1, 5, 5, '#997744');
+    rect(ctx, ox+9, oy+1, 5, 5, '#8a6633');
+    rect(ctx, ox+2, oy+8, 5, 6, '#8a6633');
+    rect(ctx, ox+9, oy+8, 5, 6, '#997744');
+    rect(ctx, ox+7, oy+1, 2, 14, '#664422');
+    rect(ctx, ox+2, oy+6, 12, 2, '#664422');
+    px(ctx, ox+11, oy+8, '#ccaa44'); px(ctx, ox+12, oy+8, '#ddbb55');
+    px(ctx, ox+11, oy+9, '#bbaa33'); px(ctx, ox+12, oy+9, '#ccaa44');
+    rect(ctx, ox+1, oy, 14, 1, '#442211');
+    rect(ctx, ox+1, oy+15, 14, 1, '#442211');
+    rect(ctx, ox+1, oy, 1, 16, '#442211');
+    rect(ctx, ox+14, oy, 1, 16, '#442211');
+    px(ctx, ox+3, oy+2, '#aa8855'); px(ctx, ox+10, oy+2, '#aa8855');
+}
+
+function drawTileDoorLocked(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#333344');
+    rect(ctx, ox+1, oy+1, 14, 14, '#555566');
+    rect(ctx, ox+2, oy+2, 12, 12, '#606070');
+    px(ctx, ox+2, oy+2, '#888899'); px(ctx, ox+13, oy+2, '#888899');
+    px(ctx, ox+2, oy+13, '#888899'); px(ctx, ox+13, oy+13, '#888899');
+    px(ctx, ox+7, oy+2, '#888899'); px(ctx, ox+8, oy+2, '#888899');
+    px(ctx, ox+7, oy+13, '#888899'); px(ctx, ox+8, oy+13, '#888899');
+    rect(ctx, ox+2, oy+7, 12, 2, '#4a4a5a');
+    rect(ctx, ox+7, oy+2, 2, 12, '#4a4a5a');
+    rect(ctx, ox+6, oy+8, 4, 5, '#bbaa33');
+    rect(ctx, ox+7, oy+8, 2, 5, '#ddcc44');
+    px(ctx, ox+7, oy+9, '#222233'); px(ctx, ox+8, oy+9, '#222233');
+    px(ctx, ox+7, oy+10, '#333344'); px(ctx, ox+8, oy+10, '#333344');
+    px(ctx, ox+8, oy+11, '#222233');
+    rect(ctx, ox, oy, 16, 1, '#222233');
+    rect(ctx, ox, oy+15, 16, 1, '#222233');
+    rect(ctx, ox, oy, 1, 16, '#222233');
+    rect(ctx, ox+15, oy, 1, 16, '#222233');
+}
+
+function drawTileDoorSealed(ctx, ox, oy) {
+    rect(ctx, ox, oy, 16, 16, '#880000');
+    rect(ctx, ox+1, oy+1, 14, 14, '#aa1111');
+    rect(ctx, ox+2, oy+2, 12, 12, '#cc2222');
+    rect(ctx, ox+3, oy+3, 10, 10, '#dd3333');
+    rect(ctx, ox+4, oy+4, 8, 8, '#cc2222');
+    rect(ctx, ox+5, oy+5, 6, 6, '#aa1111');
+    // X pattern
+    px(ctx, ox+2, oy+2, '#ff4444'); px(ctx, ox+3, oy+3, '#ff5555'); px(ctx, ox+4, oy+4, '#ff4444');
+    px(ctx, ox+5, oy+5, '#ff5555'); px(ctx, ox+6, oy+6, '#ff6666'); px(ctx, ox+7, oy+7, '#ff7777');
+    px(ctx, ox+8, oy+8, '#ff7777'); px(ctx, ox+9, oy+9, '#ff6666'); px(ctx, ox+10, oy+10, '#ff5555');
+    px(ctx, ox+11, oy+11, '#ff4444'); px(ctx, ox+12, oy+12, '#ff5555'); px(ctx, ox+13, oy+13, '#ff4444');
+    px(ctx, ox+13, oy+2, '#ff4444'); px(ctx, ox+12, oy+3, '#ff5555'); px(ctx, ox+11, oy+4, '#ff4444');
+    px(ctx, ox+10, oy+5, '#ff5555'); px(ctx, ox+9, oy+6, '#ff6666'); px(ctx, ox+8, oy+7, '#ff7777');
+    px(ctx, ox+7, oy+8, '#ff7777'); px(ctx, ox+6, oy+9, '#ff6666'); px(ctx, ox+5, oy+10, '#ff5555');
+    px(ctx, ox+4, oy+11, '#ff4444'); px(ctx, ox+3, oy+12, '#ff5555'); px(ctx, ox+2, oy+13, '#ff4444');
+    // Bright center
+    px(ctx, ox+7, oy+7, '#ffaaaa'); px(ctx, ox+8, oy+7, '#ffaaaa');
+    px(ctx, ox+7, oy+8, '#ffaaaa'); px(ctx, ox+8, oy+8, '#ffaaaa');
+    rect(ctx, ox, oy, 16, 1, '#550000');
+    rect(ctx, ox, oy+15, 16, 1, '#550000');
+    rect(ctx, ox, oy, 1, 16, '#550000');
+    rect(ctx, ox+15, oy, 1, 16, '#550000');
+}
+
+console.log('\nTiles:');
+exportSprite('tile_wall',           16, 16, drawTileWall,          TILE_SCALE);
+exportSprite('tile_wall_ritual',    16, 16, drawTileWallRitual,    TILE_SCALE);
+exportSprite('tile_floor_office',   16, 16, drawTileFloorOffice,   TILE_SCALE);
+exportSprite('tile_floor_corridor', 16, 16, drawTileFloorCorridor, TILE_SCALE);
+exportSprite('tile_floor_boss',     16, 16, drawTileFloorBoss,     TILE_SCALE);
+exportSprite('tile_door',           16, 16, drawTileDoor,          TILE_SCALE);
+exportSprite('tile_door_locked',    16, 16, drawTileDoorLocked,    TILE_SCALE);
+exportSprite('tile_door_sealed',    16, 16, drawTileDoorSealed,    TILE_SCALE);
+
 console.log('\nDone! Sprites saved to sprites/ directory.');

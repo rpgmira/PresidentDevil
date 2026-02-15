@@ -66,6 +66,36 @@ A top-down roguelike built with [Phaser 3](https://phaser.io/) — explore a pro
   <b>Health</b> &nbsp;·&nbsp; <b>Key</b> &nbsp;·&nbsp; <b>Repair Kit</b> &nbsp;·&nbsp; <b>Ammo (Pistol)</b> &nbsp;·&nbsp; <b>Ammo (Shotgun)</b> &nbsp;·&nbsp; <b>Ammo (Crossbow)</b>
 </p>
 
+## Dungeon Tiles
+
+<p align="center">
+  <img src="sprites/tile_wall.png" alt="Wall" width="64" />
+  &nbsp;
+  <img src="sprites/tile_wall_ritual.png" alt="Ritual Wall" width="64" />
+  &nbsp;
+  <img src="sprites/tile_floor_office.png" alt="Office Floor" width="64" />
+  &nbsp;
+  <img src="sprites/tile_floor_corridor.png" alt="Corridor" width="64" />
+  &nbsp;
+  <img src="sprites/tile_floor_boss.png" alt="Boss Floor" width="64" />
+</p>
+
+<p align="center">
+  <b>Wall</b> &nbsp;·&nbsp; <b>Ritual Wall</b> &nbsp;·&nbsp; <b>Office Floor</b> &nbsp;·&nbsp; <b>Corridor</b> &nbsp;·&nbsp; <b>Boss Floor</b>
+</p>
+
+<p align="center">
+  <img src="sprites/tile_door.png" alt="Door" width="64" />
+  &nbsp;
+  <img src="sprites/tile_door_locked.png" alt="Locked Door" width="64" />
+  &nbsp;
+  <img src="sprites/tile_door_sealed.png" alt="Sealed Door" width="64" />
+</p>
+
+<p align="center">
+  <b>Door</b> &nbsp;·&nbsp; <b>Locked</b> &nbsp;·&nbsp; <b>Sealed</b>
+</p>
+
 ## Story
 
 The President of the country is, in fact, the Devil. You play as his personal assistant — a woman who discovers the horrifying truth and must survive the chaos unfolding inside the presidential compound. She's resourceful, not a soldier, improvising with whatever she can find.
@@ -140,6 +170,10 @@ Then visit **http://localhost:8080**
 ├── js/
 │   ├── main.js             # Phaser game config
 │   ├── constants.js        # All game configuration
+│   ├── spriteGenerator.js   # Player pixel-art sprites
+│   ├── enemySpriteGenerator.js  # Enemy pixel-art sprites
+│   ├── itemSpriteGenerator.js   # Item pixel-art sprites
+│   ├── tileSpriteGenerator.js   # Wall/floor/door pixel-art tiles
 │   ├── dungeon.js          # Procedural generation
 │   ├── player.js           # Player controller & inventory
 │   ├── enemies.js          # Enemy AI & spawning
