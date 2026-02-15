@@ -17,9 +17,17 @@ class GameScene extends Phaser.Scene {
         const worldH = this.dungeon.height * CONFIG.TILE_SIZE;
         this.physics.world.setBounds(0, 0, worldW, worldH);
 
-        // Render dungeon tiles + fog (single pass)
-        this.tileGraphics = this.add.graphics();
-        this.tileGraphics.setDepth(1);
+        // Generate tile sprite textures if not yet done
+        if (!this.textures.exists('tile_wall')) {
+            TILE_SPRITE_GEN.generate(this);
+        }
+
+        // Pre-render static tile map to a RenderTexture (drawn once)
+        this._buildTileMap(worldW, worldH);
+
+        // Fog overlay (redrawn each frame)
+        this.fogGraphics = this.add.graphics();
+        this.fogGraphics.setDepth(2);
         this.wallOverlayGraphics = this.add.graphics();
         this.wallOverlayGraphics.setDepth(58);
 
@@ -169,7 +177,7 @@ class GameScene extends Phaser.Scene {
     }
 
     _renderWorld() {
-        const g = this.tileGraphics;
+        const g = this.fogGraphics;
         g.clear();
 
         const cam = this.cameras.main;
@@ -197,30 +205,6 @@ class GameScene extends Phaser.Scene {
                 const cy = py + CONFIG.TILE_SIZE / 2;
                 const dist = Phaser.Math.Distance.Between(playerX, playerY, cx, cy);
 
-                // Draw tile
-                if (tile.type === 'wall') {
-                    const room = this._getAdjacentRoom(x, y);
-                    if (room && room.type === 'boss') {
-                        g.fillStyle(CONFIG.COLORS.WALL_RITUAL, 1);
-                    } else {
-                        g.fillStyle(CONFIG.COLORS.WALL, 1);
-                    }
-                    g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                    g.lineStyle(1, CONFIG.COLORS.WALL_EDGE, 0.8);
-                    g.strokeRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                } else if (tile.type === 'floor') {
-                    if (tile.room && tile.room.type === 'boss') {
-                        g.fillStyle(CONFIG.COLORS.FLOOR_BOSS, 1);
-                    } else if (tile.corridor) {
-                        g.fillStyle(CONFIG.COLORS.FLOOR_CONCRETE, 1);
-                    } else {
-                        g.fillStyle(CONFIG.COLORS.FLOOR_OFFICE, 1);
-                    }
-                    g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                    g.lineStyle(1, 0x000000, 0.15);
-                    g.strokeRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-                }
-
                 // Overlay darkness (balanced, with flicker)
                 if (!tile.explored) {
                     let alpha = 0.82;
@@ -239,6 +223,23 @@ class GameScene extends Phaser.Scene {
                     g.fillStyle(0x000000, alpha);
                     g.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
                 }
+            }
+        }
+    }
+
+    _buildTileMap(worldW, worldH) {
+        this.tileRT = this.add.renderTexture(0, 0, worldW, worldH);
+        this.tileRT.setOrigin(0, 0);
+        this.tileRT.setDepth(1);
+
+        const ts = CONFIG.TILE_SIZE;
+        const getAdjacentRoom = this._getAdjacentRoom.bind(this);
+
+        for (let y = 0; y < this.dungeon.height; y++) {
+            for (let x = 0; x < this.dungeon.width; x++) {
+                const tile = this.dungeon.getTile(x, y);
+                const texKey = TILE_SPRITE_GEN.getTextureKey(tile, getAdjacentRoom, x, y);
+                this.tileRT.drawFrame(texKey, undefined, x * ts, y * ts);
             }
         }
     }
@@ -448,12 +449,19 @@ class GameScene extends Phaser.Scene {
             const px = door.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = door.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
 
-            let color;
-            if (door.type === 'locked') color = CONFIG.COLORS.DOOR_LOCKED;
-            else if (door.type === 'shortcut') color = 0x66aaff;
-            else color = CONFIG.COLORS.DOOR;
+            const texKey = TILE_SPRITE_GEN.getDoorTextureKey(door.type);
 
-            const sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2, color);
+            let sprite;
+            if (this.textures.exists(texKey)) {
+                sprite = this.add.sprite(px, py, texKey);
+            } else {
+                // Fallback to colored rectangle
+                let color;
+                if (door.type === 'locked') color = CONFIG.COLORS.DOOR_LOCKED;
+                else if (door.type === 'shortcut') color = 0x66aaff;
+                else color = CONFIG.COLORS.DOOR;
+                sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2, color);
+            }
             sprite.setDepth(55);
             sprite.setData('door', door);
             sprite.setData('label', this._createWorldLabel(px, py - 12, this._getDoorLabel(door.type), '#ffdd88'));
@@ -619,7 +627,11 @@ class GameScene extends Phaser.Scene {
             if (door.room === room) {
                 door.open = false;
                 sprite.setVisible(true);
-                sprite.setFillStyle(CONFIG.COLORS.DOOR_SEALED);
+                if (sprite.setTexture) {
+                    sprite.setTexture('tile_door_sealed');
+                } else if (sprite.setFillStyle) {
+                    sprite.setFillStyle(CONFIG.COLORS.DOOR_SEALED);
+                }
                 const label = sprite.getData('label');
                 if (label) {
                     label.setText('SEALED');
@@ -716,7 +728,11 @@ class GameScene extends Phaser.Scene {
             if (door.room === room) {
                 door.open = true;
                 sprite.setVisible(false);
-                sprite.setFillStyle(CONFIG.COLORS.DOOR);
+                if (sprite.setTexture) {
+                    sprite.setTexture(TILE_SPRITE_GEN.getDoorTextureKey(door.type));
+                } else if (sprite.setFillStyle) {
+                    sprite.setFillStyle(CONFIG.COLORS.DOOR);
+                }
                 const label = sprite.getData('label');
                 if (label) label.setVisible(false);
             }
