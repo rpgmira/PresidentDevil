@@ -87,15 +87,15 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Special room types: start room, locked rooms, event rooms
 
 ### 1.3 — Player
-- [ ] Top-down player character (spritesheet-based)
-- [ ] **Sprite animations** (not static like Vampire Survivors):
+- [x] Top-down player character (spritesheet-based) *(implemented via procedural sprite generator instead of hand-drawn art)*
+- [x] **Sprite animations** (not static like Vampire Survivors): *(all animations implemented via procedural frame generation)*
   - Idle (1–2 frames, subtle breathing/sway)
   - Walk cycle (2–3 frames per direction: up, down, left, right)
   - Melee attack swing (2–3 frames)
   - Ranged attack / shoot (2 frames)
   - Hurt / flinch (1–2 frames)
   - Death (3–4 frames)
-- [ ] Phaser spritesheet loader + animation definitions
+- [x] Phaser spritesheet loader + animation definitions *(using generated textures + Phaser animation system)*
 - [x] Placeholder: colored rectangles with frame-swap to simulate animation until real art is ready
 - [x] Smooth movement with collision
 - [x] Slow, deliberate walk speed (horror pacing)
@@ -185,14 +185,14 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Melee weapons (found in rooms, varying rarity)
 - [x] Ranged weapons (found in rooms, rare)
 - [x] Repair kits (restore durability to broken melee weapons)
-- [ ] Weapon upgrade tokens (used during panic events)
+- [x] Weapon upgrade tokens (used during panic events) *(superseded by evolution choice UI in Phase 2.4)*
 - [x] Locked doors (require keys)
 - [x] Shortcuts (one-way doors that unlock from one side)
 - [x] Item drop/swap system (drop items to pick up new ones when inventory is full)
 
 ### 1.9 — HUD & UI
 - [x] Health bar
-- [ ] Battery indicator
+- [x] Battery indicator *(cut — no flashlight/battery mechanic; corruption meter fills this tension role)*
 - [x] Corruption meter
 - [x] Minimap (reveals explored rooms)
 - [x] Inventory bar (slots 1–6, highlights active melee + active ranged)
