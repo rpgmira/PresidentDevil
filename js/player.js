@@ -177,11 +177,13 @@ class Player {
 
         this.moving = (vx !== 0 || vy !== 0);
 
-        // Update facing direction
-        if (vx < 0) this.facing = 'left';
-        else if (vx > 0) this.facing = 'right';
-        if (vy < 0) this.facing = 'up';
-        else if (vy > 0) this.facing = 'down';
+        // Update facing direction (skip during attack so we keep facing the enemy)
+        if (!this.isAttacking) {
+            if (vx < 0) this.facing = 'left';
+            else if (vx > 0) this.facing = 'right';
+            if (vy < 0) this.facing = 'up';
+            else if (vy > 0) this.facing = 'down';
+        }
 
         // Normalize diagonal movement
         if (vx !== 0 && vy !== 0) {

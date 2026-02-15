@@ -682,7 +682,8 @@ class GameScene extends Phaser.Scene {
             }
 
             const type = Math.random() < (0.5 + level * 0.1) ? 'lurker' : 'crawler';
-            this.enemyManager.spawnAtPosition(x, y, type);
+            const panicDiffMult = 1 + level * 0.3; // escalate speed with corruption level
+            this.enemyManager.spawnAtPosition(x, y, type, panicDiffMult);
         }
 
         this.panicState.enemiesRemaining = count;
