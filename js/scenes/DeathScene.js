@@ -15,6 +15,9 @@ class DeathScene extends Phaser.Scene {
         const cx = CONFIG.GAME_WIDTH / 2;
         const cy = CONFIG.GAME_HEIGHT / 2;
 
+        // Process meta-progression
+        const metaResult = META.processRunEnd(this.stats, false);
+
         this.cameras.main.setBackgroundColor('#0a0000');
 
         // Death title
@@ -58,6 +61,13 @@ class DeathScene extends Phaser.Scene {
             fill: '#888',
             fontFamily: 'monospace',
             lineSpacing: 6
+        }).setOrigin(0.5);
+
+        // Currency earned
+        this.add.text(cx, cy + 95, `Red Ink earned: +${metaResult.earned}  (Total: ${metaResult.total})`, {
+            fontSize: '11px',
+            fill: '#cc6644',
+            fontFamily: 'monospace'
         }).setOrigin(0.5);
 
         // Retry prompt

@@ -177,6 +177,9 @@ class Player {
 
         this.moving = (vx !== 0 || vy !== 0);
 
+        // Footstep audio
+        if (this.moving) AUDIO.playFootstep();
+
         // Update facing direction (skip during attack so we keep facing the enemy)
         if (!this.isAttacking) {
             if (vx < 0) this.facing = 'left';
@@ -272,6 +275,7 @@ class Player {
                     // Use repair kit on active melee weapon
                     this._useRepairKit(slotIndex);
                 }
+                AUDIO.playInventorySelect();
                 this.selectedSlot = slotIndex;
             }
         }
@@ -294,6 +298,11 @@ class Player {
             amount = Math.floor(amount * 0.5);
         }
 
+        // Fortress mode: 75% damage reduction
+        if (this.scene.panicState && this.scene.panicState.fortressActive) {
+            amount = Math.floor(amount * 0.25);
+        }
+
         // Passive item damage reduction
         amount = Math.floor(amount * this.getPassiveMult('damageTaken'));
 
@@ -301,6 +310,7 @@ class Player {
         this.stats.damageTaken += amount;
         this.invulnerable = true;
         this.invulnTimer = CONFIG.PLAYER_INVULN_TIME;
+        AUDIO.playPlayerHurt();
 
         // Red flash (tint-based)
         this.sprite.setTint(0xff0000);
@@ -323,6 +333,8 @@ class Player {
 
     die() {
         this.alive = false;
+        AUDIO.playPlayerDeath();
+        AUDIO.stopAll();
 
         // Play death animation
         this.sprite.setTint(0xff4444);
@@ -387,6 +399,10 @@ class Player {
                 case 'corruptDecay': if (p.corruptDecayMult) mult *= p.corruptDecayMult; break;
             }
         }
+        // Apply meta-progression multipliers
+        if (stat === 'speed' && this._metaSpeedMult) mult *= this._metaSpeedMult;
+        if (stat === 'meleeDamage' && this._metaMeleeMult) mult *= this._metaMeleeMult;
+        if (stat === 'corruption' && this._metaCorruptMult) mult *= this._metaCorruptMult;
         return mult;
     }
 
@@ -416,6 +432,7 @@ class Player {
         // Notify scene to create a dropped item sprite
         const droppedItem = this.removeFromInventory(this.selectedSlot);
         if (droppedItem && this.scene.dropItem) {
+            AUDIO.playItemDrop();
             this.scene.dropItem(droppedItem, this.sprite.x, this.sprite.y);
         }
         this.selectedSlot = -1;

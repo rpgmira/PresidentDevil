@@ -87,15 +87,15 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Special room types: start room, locked rooms, event rooms
 
 ### 1.3 — Player
-- [ ] Top-down player character (spritesheet-based)
-- [ ] **Sprite animations** (not static like Vampire Survivors):
+- [x] Top-down player character (spritesheet-based) *(implemented via procedural sprite generator instead of hand-drawn art)*
+- [x] **Sprite animations** (not static like Vampire Survivors): *(all animations implemented via procedural frame generation)*
   - Idle (1–2 frames, subtle breathing/sway)
   - Walk cycle (2–3 frames per direction: up, down, left, right)
   - Melee attack swing (2–3 frames)
   - Ranged attack / shoot (2 frames)
   - Hurt / flinch (1–2 frames)
   - Death (3–4 frames)
-- [ ] Phaser spritesheet loader + animation definitions
+- [x] Phaser spritesheet loader + animation definitions *(using generated textures + Phaser animation system)*
 - [x] Placeholder: colored rectangles with frame-swap to simulate animation until real art is ready
 - [x] Smooth movement with collision
 - [x] Slow, deliberate walk speed (horror pacing)
@@ -185,14 +185,14 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] Melee weapons (found in rooms, varying rarity)
 - [x] Ranged weapons (found in rooms, rare)
 - [x] Repair kits (restore durability to broken melee weapons)
-- [ ] Weapon upgrade tokens (used during panic events)
+- [x] Weapon upgrade tokens (used during panic events) *(superseded by evolution choice UI in Phase 2.4)*
 - [x] Locked doors (require keys)
 - [x] Shortcuts (one-way doors that unlock from one side)
 - [x] Item drop/swap system (drop items to pick up new ones when inventory is full)
 
 ### 1.9 — HUD & UI
 - [x] Health bar
-- [ ] Battery indicator
+- [x] Battery indicator *(cut — no flashlight/battery mechanic; corruption meter fills this tension role)*
 - [x] Corruption meter
 - [x] Minimap (reveals explored rooms)
 - [x] Inventory bar (slots 1–6, highlights active melee + active ranged)
@@ -216,17 +216,17 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 **Goal:** Make the prototype feel good. Add variety and replayability.
 
 ### 2.1 — Audio (Stubbed in Phase 1)
-- [ ] Ambient soundscape (drones, hums, distant noises)
-- [ ] Footstep sounds (player + enemies)
-- [ ] Heartbeat that intensifies with corruption
-- [ ] Panic event music (chaotic, overwhelming)
-- [ ] Exploration music (minimal, tense)
-- [ ] Jump scare stingers
-- [ ] UI sounds (pickups, doors, inventory)
+- [x] Ambient soundscape (drones, hums, distant noises)
+- [x] Footstep sounds (player + enemies)
+- [x] Heartbeat that intensifies with corruption
+- [x] Panic event music (chaotic, overwhelming)
+- [x] Exploration music (minimal, tense)
+- [x] Jump scare stingers
+- [x] UI sounds (pickups, doors, inventory)
 
 ### 2.2 — Visual Polish
-- [ ] Sprite-based player and enemies (replace placeholder shapes)
-- [ ] Tile art for walls, floors, doors
+- [x] Sprite-based player and enemies (replace placeholder shapes)
+- [x] Tile art for walls, floors, doors
 - [x] Particle effects (blood, sparks, corruption wisps)
 - [x] Screen shake improvements
 - [x] Lighting improvements (dynamic shadows, flickering)
@@ -236,20 +236,19 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [x] 3-4 distinct enemy types with unique behaviors
 - [x] Enemy difficulty scaling with corruption
 - [x] Mini-boss enemies in later rooms
-- [ ] Enemy visual/audio tells
+- [x] Enemy visual/audio tells
 
 ### 2.4 — Build Variety
-- [ ] Multiple weapon base types
-- [ ] Weapon evolution trees during panic events
+- [x] Multiple weapon base types
+- [x] Weapon evolution trees during panic events
 - [x] Passive items that modify gameplay
-- [ ] Build synergies
+- [x] Build synergies
 
 ### 2.5 — Meta-Progression
-- [ ] Persistent currency earned per run
-- [ ] Unlock permanent upgrades between runs
-- [ ] Unlock new starting items
-- [ ] Unlock new room types / enemy types
-- [ ] Stats tracking across runs
+- [x] Persistent currency earned per run
+- [x] Unlock permanent upgrades between runs
+- [x] Unlock new starting items
+- [x] Stats tracking across runs
 
 ---
 
@@ -299,6 +298,7 @@ combat during panic events. Power doesn't make you safe — it makes you a bigge
 - [ ] Leaderboards
 - [ ] Modding support
 - [ ] Mobile touch controls
+- [ ] Unlock new room types / enemy types (moved from Phase 2.5)
 
 ---
 
