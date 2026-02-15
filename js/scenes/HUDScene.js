@@ -263,15 +263,24 @@ class HUDScene extends Phaser.Scene {
 
         // Ammo
         if (player.rangedWeapon) {
-            const ammoMap = { 'Handgun': 'ammo_pistol', 'Shotgun': 'ammo_shotgun', 'Crossbow': 'ammo_crossbow' };
-            const ammoType = ammoMap[player.rangedWeapon.name];
-            let total = 0;
-            if (ammoType) {
+            if (player.rangedWeapon.consumable) {
+                // Consumable weapons (grenades) — count remaining in inventory
+                let count = 0;
                 for (const item of player.inventory) {
-                    if (item && item.type === ammoType) total += item.count;
+                    if (item && item.weapon && item.weapon.name === player.rangedWeapon.name) count++;
                 }
+                this.ammoText.setText(`x${count}`);
+            } else {
+                const ammoMap = { 'Handgun': 'ammo_pistol', 'Shotgun': 'ammo_shotgun', 'Crossbow': 'ammo_crossbow' };
+                const ammoType = ammoMap[player.rangedWeapon.name];
+                let total = 0;
+                if (ammoType) {
+                    for (const item of player.inventory) {
+                        if (item && item.type === ammoType) total += item.count;
+                    }
+                }
+                this.ammoText.setText(`Ammo: ${total}`);
             }
-            this.ammoText.setText(`Ammo: ${total}`);
         } else {
             this.ammoText.setText('');
         }

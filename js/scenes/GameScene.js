@@ -174,6 +174,9 @@ class GameScene extends Phaser.Scene {
             const currentRoom = this.dungeon.getRoomAt(this.player.sprite.x, this.player.sprite.y);
             if (currentRoom && currentRoom.type !== 'start') {
                 this._startPanicEvent(currentRoom);
+            } else {
+                // Block panic in start room but still set flag to avoid per-frame retrigger
+                this.corruption.setPanicTriggered();
             }
         }
 
@@ -597,6 +600,10 @@ class GameScene extends Phaser.Scene {
                 return { type: 'weapon', name: 'Shotgun', weapon: CONFIG.WEAPONS.SHOTGUN };
             case 'weapon_crossbow':
                 return { type: 'weapon', name: 'Crossbow', weapon: CONFIG.WEAPONS.CROSSBOW };
+            case 'weapon_chainsaw':
+                return { type: 'weapon', name: 'Chainsaw', weapon: CONFIG.WEAPONS.CHAINSAW, durability: 50 };
+            case 'grenade':
+                return { type: 'weapon', name: 'Grenade', weapon: CONFIG.WEAPONS.GRENADE };
             default:
                 // Handle passive items
                 if (spawn.type.startsWith('passive_')) {
@@ -753,6 +760,7 @@ class GameScene extends Phaser.Scene {
                 this.time.delayedCall(CONFIG.PANIC_WAVE_DELAY, () => {
                     if (this.panicState.active) {
                         this._spawnPanicWave(room);
+                        AUDIO.playPanicWave();
                         this.cameras.main.flash(100, 80, 0, 0);
                     }
                 });
@@ -975,23 +983,26 @@ class GameScene extends Phaser.Scene {
     _revertWeaponEvolution() {
         if (!this.panicState.originalMelee) return;
 
-        // Restore original melee weapon reference
+        // Restore original melee weapon from saved snapshot
         if (this.player.activeMeleeSlot === -1) {
             this.player.meleeWeapon = CONFIG.WEAPONS.FISTS;
         } else {
+            // Use the saved original stats, not the (possibly modified) inventory reference
+            this.player.meleeWeapon = { ...this.panicState.originalMelee };
             const item = this.player.inventory[this.player.activeMeleeSlot];
             if (item && item.weapon) {
-                this.player.meleeWeapon = item.weapon;
-            } else {
-                this.player.meleeWeapon = CONFIG.WEAPONS.FISTS;
+                item.weapon = this.player.meleeWeapon;
             }
         }
 
-        // Restore ranged
+        // Restore ranged from saved snapshot
         if (this.player.activeRangedSlot >= 0) {
-            const item = this.player.inventory[this.player.activeRangedSlot];
-            if (item && item.weapon) {
-                this.player.rangedWeapon = item.weapon;
+            if (this.panicState.originalRanged) {
+                this.player.rangedWeapon = { ...this.panicState.originalRanged };
+                const item = this.player.inventory[this.player.activeRangedSlot];
+                if (item && item.weapon) {
+                    item.weapon = this.player.rangedWeapon;
+                }
             } else {
                 this.player.rangedWeapon = null;
             }

@@ -234,12 +234,7 @@ class Player {
             }
         }
 
-        // Reveal room
-        const currentRoom = dungeon.getRoomAt(this.sprite.x, this.sprite.y);
-        if (currentRoom && !currentRoom.explored) {
-            dungeon.revealRoom(currentRoom);
-            this.stats.roomsExplored++;
-        }
+        // Room reveal is handled by GameScene to avoid double exploration tracking
 
         // Also reveal corridor tiles around player
         const px = Math.floor(this.sprite.x / CONFIG.TILE_SIZE);
