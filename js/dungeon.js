@@ -296,7 +296,7 @@ class Dungeon {
     _placeItems() {
         this.itemSpawns = [];
         const scavengerBonus = META.getScavengerBonus(); // 0, 0.15, or 0.30
-        const _placeKeyBeforeRoom = (room) => {
+        const placeKeyBeforeRoom = (room) => {
             const roomIndex = this.rooms.indexOf(room);
             if (roomIndex <= 0) return;
             const priorRoom = this.rooms[roomIndex - 1];
@@ -344,12 +344,12 @@ class Dungeon {
 
             // Locked rooms always have a key somewhere in a prior room
             if (room.type === 'locked') {
-                _placeKeyBeforeRoom(room);
+                placeKeyBeforeRoom(room);
             }
 
             // Boss/escape room requires a key: place it in the previous room
             if (room.type === 'boss') {
-                _placeKeyBeforeRoom(room);
+                placeKeyBeforeRoom(room);
             }
         }
     }
