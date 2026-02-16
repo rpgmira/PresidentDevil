@@ -293,6 +293,14 @@ class Dungeon {
     _placeItems() {
         this.itemSpawns = [];
         const scavengerBonus = META.getScavengerBonus(); // 0, 0.15, or 0.30
+        const placeKeyBeforeRoom = (room) => {
+            const roomIndex = this.rooms.indexOf(room);
+            if (roomIndex <= 0) return;
+            const priorRoom = this.rooms[roomIndex - 1];
+            const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
+            const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
+            this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+        };
         for (const room of this.rooms) {
             if (room.type === 'start') continue;
 
@@ -333,19 +341,12 @@ class Dungeon {
 
             // Locked rooms always have a key somewhere in a prior room
             if (room.type === 'locked') {
-                const priorRoom = this.rooms[Math.max(0, this.rooms.indexOf(room) - 1)];
-                const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
-                const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
-                this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+                placeKeyBeforeRoom(room);
             }
 
             // Boss/escape room requires a key: place it in the previous room
             if (room.type === 'boss') {
-                const bossIndex = this.rooms.indexOf(room);
-                const priorRoom = bossIndex > 0 ? this.rooms[bossIndex - 1] : room;
-                const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
-                const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
-                this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+                placeKeyBeforeRoom(room);
             }
         }
     }
