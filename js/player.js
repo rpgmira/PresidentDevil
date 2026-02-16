@@ -20,18 +20,22 @@ class Player {
         );
         this.sprite.setDepth(60);
         scene.physics.add.existing(this.sprite);
-        // Reduced collision box: only legs block movement (bottom portion of sprite)
-        // Width: 10 pixels (reduced from 14), Height: 6 pixels (covers legs area)
-        const collisionWidth = 10;
+        
+        // Improved collision box: smaller and more centered for better movement
+        const collisionWidth = 8;  // Reduced from 10 for smoother wall navigation
         const collisionHeight = 6;
         this.sprite.body.setSize(collisionWidth, collisionHeight);
-        // Offset to position collision box at bottom of sprite
-        // Sprite is 16x16, so offset vertically by (16 - 6) = 10 pixels to bottom-align
-        this.collisionOffsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
-        this.collisionOffsetY = CONFIG.TILE_SIZE - collisionHeight;
-        this.halfTileSize = CONFIG.TILE_SIZE / 2;  // Cache for collision calculations
-        this.sprite.body.setOffset(this.collisionOffsetX, this.collisionOffsetY);
+        
+        // Center the collision box horizontally and place at bottom for feet position
+        const collisionOffsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
+        const collisionOffsetY = CONFIG.TILE_SIZE - collisionHeight - 1; // -1 to avoid edge issues
+        this.sprite.body.setOffset(collisionOffsetX, collisionOffsetY);
         this.sprite.body.setCollideWorldBounds(false);
+
+        // Store values for easier access (no longer needed with improved collision)
+        this.halfTileSize = CONFIG.TILE_SIZE / 2;
+        this.collisionOffsetX = collisionOffsetX;
+        this.collisionOffsetY = collisionOffsetY;
 
         // Animation state
         this._currentAnim = '';
@@ -134,6 +138,9 @@ class Player {
             this._dropSelectedItem();
         }
 
+        // Prevent getting stuck in walls
+        this._preventStuckInWalls(dungeon);
+
         // Movement
         this._handleMovement(delta, dungeon);
 
@@ -206,9 +213,9 @@ class Player {
             else if (vy > 0) this.facing = 'down';
         }
 
-        // Normalize diagonal movement
+        // Normalize diagonal movement for consistent speed
         if (vx !== 0 && vy !== 0) {
-            const len = Math.sqrt(2);
+            const len = Math.sqrt(vx * vx + vy * vy);
             vx /= len;
             vy /= len;
         }
@@ -218,35 +225,59 @@ class Player {
         // Use Phaser physics velocity instead of manual position updates
         this.sprite.body.setVelocity(vx * speed, vy * speed);
 
-        // Tile-based collision prediction: stop movement axes that would enter walls
+        // Improved collision detection considering the full sprite bounds
         if (this.moving) {
-            const dt = delta / 1000;
-            // Use actual collision box dimensions (positioned at bottom of sprite)
-            const halfWidth = this.sprite.body.width / 2;
-            const halfHeight = this.sprite.body.height / 2;
+            const lookAhead = 3; // pixels to look ahead
             
-            // Calculate the actual collision box center (not sprite center)
-            const collisionCenterX = this.sprite.x - this.halfTileSize + this.collisionOffsetX + halfWidth;
-            const collisionCenterY = this.sprite.y - this.halfTileSize + this.collisionOffsetY + halfHeight;
+            // For narrow corridors, use a smaller effective collision area
+            // Sprite center minus reduced bounds for corridor navigation
+            const effectiveSize = 12; // Reduced from 16 to fit through 1-tile corridors
+            const halfEffectiveSize = effectiveSize / 2;
             
-            const predictX = collisionCenterX + vx * speed * dt;
-            const predictY = collisionCenterY + vy * speed * dt;
+            const spriteLeft = this.sprite.x - halfEffectiveSize;
+            const spriteTop = this.sprite.y - halfEffectiveSize;
+            const spriteRight = this.sprite.x + halfEffectiveSize;
+            const spriteBottom = this.sprite.y + halfEffectiveSize;
 
-            // Check X axis - use predicted Y position for accurate diagonal collision
-            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
-            const tileCheckYForX1 = Math.floor((predictY - halfHeight) / CONFIG.TILE_SIZE);
-            const tileCheckYForX2 = Math.floor((predictY + halfHeight) / CONFIG.TILE_SIZE);
-            if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
-                !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
-                this.sprite.body.setVelocityX(0);
+            // Calculate next position with lookahead
+            const nextLeft = spriteLeft + vx * lookAhead;
+            const nextTop = spriteTop + vy * lookAhead;
+            const nextRight = spriteRight + vx * lookAhead;
+            const nextBottom = spriteBottom + vy * lookAhead;
+
+            let canMoveX = true;
+            let canMoveY = true;
+
+            // Check X movement - verify key points along sprite height
+            if (vx !== 0) {
+                const checkX = vx > 0 ? Math.floor(nextRight / CONFIG.TILE_SIZE) : Math.floor(nextLeft / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const topTileY = Math.floor((nextTop + 2) / CONFIG.TILE_SIZE);    // Slightly inset
+                const bottomTileY = Math.floor((nextBottom - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(checkX, topTileY) || !dungeon.isWalkable(checkX, bottomTileY)) {
+                    canMoveX = false;
+                }
             }
 
-            // Check Y axis - use predicted X position for accurate diagonal collision
-            const tileCheckY = Math.floor((predictY + (vy > 0 ? halfHeight : -halfHeight)) / CONFIG.TILE_SIZE);
-            const tileCheckXForY1 = Math.floor((predictX - halfWidth) / CONFIG.TILE_SIZE);
-            const tileCheckXForY2 = Math.floor((predictX + halfWidth) / CONFIG.TILE_SIZE);
-            if (!dungeon.isWalkable(tileCheckXForY1, tileCheckY) ||
-                !dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
+            // Check Y movement - verify key points along sprite width
+            if (vy !== 0) {
+                const checkY = vy > 0 ? Math.floor(nextBottom / CONFIG.TILE_SIZE) : Math.floor(nextTop / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const leftTileX = Math.floor((nextLeft + 2) / CONFIG.TILE_SIZE);   // Slightly inset
+                const rightTileX = Math.floor((nextRight - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(leftTileX, checkY) || !dungeon.isWalkable(rightTileX, checkY)) {
+                    canMoveY = false;
+                }
+            }
+
+            // Apply velocity only for valid movement directions
+            if (!canMoveX) {
+                this.sprite.body.setVelocityX(0);
+            }
+            
+            if (!canMoveY) {
                 this.sprite.body.setVelocityY(0);
             }
         }
@@ -516,5 +547,65 @@ class Player {
             x: Math.floor(this.sprite.x / CONFIG.TILE_SIZE),
             y: Math.floor(this.sprite.y / CONFIG.TILE_SIZE)
         };
+    }
+
+    // Helper method to detect and fix player getting stuck in walls
+    _preventStuckInWalls(dungeon) {
+        // Use a smaller area for stuck detection to allow corridor navigation
+        const checkSize = 10; // Smaller than sprite size for corridor tolerance
+        const halfCheckSize = checkSize / 2;
+        
+        const checkLeft = this.sprite.x - halfCheckSize;
+        const checkTop = this.sprite.y - halfCheckSize;
+        const checkRight = this.sprite.x + halfCheckSize;
+        const checkBottom = this.sprite.y + halfCheckSize;
+        
+        // Only check critical points that would indicate being truly stuck
+        const checkPoints = [
+            { x: this.sprite.x, y: checkTop + 2 },          // Center-top
+            { x: this.sprite.x, y: checkBottom - 2 },       // Center-bottom
+            { x: checkLeft + 2, y: this.sprite.y },         // Left-center
+            { x: checkRight - 2, y: this.sprite.y },        // Right-center
+        ];
+        
+        let stuckCount = 0;
+        for (const point of checkPoints) {
+            const tileX = Math.floor(point.x / CONFIG.TILE_SIZE);
+            const tileY = Math.floor(point.y / CONFIG.TILE_SIZE);
+            
+            if (!dungeon.isWalkable(tileX, tileY)) {
+                stuckCount++;
+            }
+        }
+        
+        // Only consider stuck if multiple critical points are in walls
+        if (stuckCount >= 2) {
+            const playerTileX = Math.floor(this.sprite.x / CONFIG.TILE_SIZE);
+            const playerTileY = Math.floor(this.sprite.y / CONFIG.TILE_SIZE);
+            const nearestWalkable = this._findNearestWalkableTile(dungeon, playerTileX, playerTileY);
+            if (nearestWalkable) {
+                this.sprite.x = nearestWalkable.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                this.sprite.y = nearestWalkable.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                this.sprite.body.setVelocity(0, 0);
+            }
+        }
+    }
+
+    _findNearestWalkableTile(dungeon, startX, startY) {
+        // Search in expanding radius for walkable tile
+        for (let radius = 1; radius <= 5; radius++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (Math.abs(dx) === radius || Math.abs(dy) === radius) {
+                        const checkX = startX + dx;
+                        const checkY = startY + dy;
+                        if (dungeon.isWalkable(checkX, checkY)) {
+                            return { x: checkX, y: checkY };
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
