@@ -32,7 +32,7 @@ class Player {
         this.sprite.body.setOffset(collisionOffsetX, collisionOffsetY);
         this.sprite.body.setCollideWorldBounds(false);
 
-        // Store values for easier access (no longer needed with improved collision)
+        // Store values for easier access and for anti-stuck/collision logic
         this.halfTileSize = CONFIG.TILE_SIZE / 2;
         this.collisionOffsetX = collisionOffsetX;
         this.collisionOffsetY = collisionOffsetY;
@@ -235,9 +235,8 @@ class Player {
         if (this.moving) {
             const lookAhead = 3; // pixels to look ahead
             
-            // For narrow corridors, use a smaller effective collision area
-            // Sprite center minus reduced bounds for corridor navigation
-            const effectiveSize = 12; // Reduced from 16 to fit through 1-tile corridors
+            // Match physics body width (8px) to avoid over-conservative tile checks
+            const effectiveSize = 8; // Match physics collision box width
             const halfEffectiveSize = effectiveSize / 2;
             
             const spriteLeft = this.sprite.x - halfEffectiveSize;
@@ -254,12 +253,32 @@ class Player {
             let canMoveX = true;
             let canMoveY = true;
 
-            // Check X axis - use predicted Y position for accurate diagonal collision
-            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
-            const tileCheckYForX1 = Math.floor((predictY - halfHeight) / CONFIG.TILE_SIZE);
-            const tileCheckYForX2 = Math.floor((predictY + halfHeight) / CONFIG.TILE_SIZE);
-            if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
-                !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
+            // Check X movement - verify key points along sprite height
+            if (vx !== 0) {
+                const checkX = vx > 0 ? Math.floor(nextRight / CONFIG.TILE_SIZE) : Math.floor(nextLeft / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const topTileY = Math.floor((nextTop + 2) / CONFIG.TILE_SIZE);    // Slightly inset
+                const bottomTileY = Math.floor((nextBottom - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(checkX, topTileY) || !dungeon.isWalkable(checkX, bottomTileY)) {
+                    canMoveX = false;
+                }
+            }
+
+            // Check Y movement - verify key points along sprite width
+            if (vy !== 0) {
+                const checkY = vy > 0 ? Math.floor(nextBottom / CONFIG.TILE_SIZE) : Math.floor(nextTop / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const leftTileX = Math.floor((nextLeft + 2) / CONFIG.TILE_SIZE);   // Slightly inset
+                const rightTileX = Math.floor((nextRight - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(leftTileX, checkY) || !dungeon.isWalkable(rightTileX, checkY)) {
+                    canMoveY = false;
+                }
+            }
+
+            // Apply velocity only for valid movement directions
+            if (!canMoveX) {
                 this.sprite.body.setVelocityX(0);
             }
             
