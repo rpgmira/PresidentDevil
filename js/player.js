@@ -238,19 +238,19 @@ class Player {
             const predictX = collisionCenterX + vx * speed * dt;
             const predictY = collisionCenterY + vy * speed * dt;
 
-            // Check X axis - use predicted Y position for accurate diagonal collision
+            // Check X axis using current Y position, so movement can slide along walls
             const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
-            const tileCheckYForX1 = Math.floor((predictY - halfHeight) / CONFIG.TILE_SIZE);
-            const tileCheckYForX2 = Math.floor((predictY + halfHeight) / CONFIG.TILE_SIZE);
+            const tileCheckYForX1 = Math.floor((collisionCenterY - halfHeight) / CONFIG.TILE_SIZE);
+            const tileCheckYForX2 = Math.floor((collisionCenterY + halfHeight) / CONFIG.TILE_SIZE);
             if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
                 !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
                 this.sprite.body.setVelocityX(0);
             }
 
-            // Check Y axis - use predicted X position for accurate diagonal collision
+            // Check Y axis using current X position, so movement can slide along walls
             const tileCheckY = Math.floor((predictY + (vy > 0 ? halfHeight : -halfHeight)) / CONFIG.TILE_SIZE);
-            const tileCheckXForY1 = Math.floor((predictX - halfWidth) / CONFIG.TILE_SIZE);
-            const tileCheckXForY2 = Math.floor((predictX + halfWidth) / CONFIG.TILE_SIZE);
+            const tileCheckXForY1 = Math.floor((collisionCenterX - halfWidth) / CONFIG.TILE_SIZE);
+            const tileCheckXForY2 = Math.floor((collisionCenterX + halfWidth) / CONFIG.TILE_SIZE);
             if (!dungeon.isWalkable(tileCheckXForY1, tileCheckY) ||
                 !dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
                 this.sprite.body.setVelocityY(0);
