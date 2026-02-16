@@ -14,6 +14,7 @@ class DeathScene extends Phaser.Scene {
     create() {
         const cx = CONFIG.GAME_WIDTH / 2;
         const cy = CONFIG.GAME_HEIGHT / 2;
+        this._restarting = false;
 
         // Process meta-progression
         const metaResult = META.processRunEnd(this.stats, false);
@@ -86,13 +87,26 @@ class DeathScene extends Phaser.Scene {
         });
 
         // Delay input to prevent accidental restart
-        this.time.delayedCall(1000, () => {
-            this.input.keyboard.once('keydown', () => {
-                this.scene.start('TitleScene');
-            });
-            this.input.once('pointerdown', () => {
-                this.scene.start('TitleScene');
-            });
+        let canRetry = false;
+        const returnToTitle = () => {
+            if (!canRetry || this._restarting) return;
+            this._restarting = true;
+            this.scene.start('TitleScene');
+        };
+
+        this.input.keyboard.on('keydown', returnToTitle);
+        this.input.on('pointerdown', returnToTitle);
+
+        const enableRetryTimer = this.time.delayedCall(1000, () => {
+            canRetry = true;
+        });
+
+        this.events.once('shutdown', () => {
+            if (enableRetryTimer && !enableRetryTimer.hasDispatched) {
+                enableRetryTimer.remove(false);
+            }
+            this.input.keyboard.off('keydown', returnToTitle);
+            this.input.off('pointerdown', returnToTitle);
         });
     }
 
