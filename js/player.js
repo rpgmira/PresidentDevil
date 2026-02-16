@@ -20,7 +20,16 @@ class Player {
         );
         this.sprite.setDepth(60);
         scene.physics.add.existing(this.sprite);
-        this.sprite.body.setSize(CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
+        // Reduced collision box: only legs block movement (bottom portion of sprite)
+        // Width: 10 pixels (reduced from 14), Height: 6 pixels (covers legs area)
+        const collisionWidth = 10;
+        const collisionHeight = 6;
+        this.sprite.body.setSize(collisionWidth, collisionHeight);
+        // Offset to position collision box at bottom of sprite
+        // Sprite is 16x16, so offset vertically by (16 - 6) / 2 = 5 pixels
+        const offsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
+        const offsetY = CONFIG.TILE_SIZE - collisionHeight;
+        this.sprite.body.setOffset(offsetX, offsetY);
         this.sprite.body.setCollideWorldBounds(false);
 
         // Animation state
@@ -211,23 +220,35 @@ class Player {
         // Tile-based collision prediction: stop movement axes that would enter walls
         if (this.moving) {
             const dt = delta / 1000;
-            const halfSize = (CONFIG.TILE_SIZE - 2) / 2;
-            const predictX = this.sprite.x + vx * speed * dt;
-            const predictY = this.sprite.y + vy * speed * dt;
+            // Use actual collision box dimensions (positioned at bottom of sprite)
+            const halfWidth = this.sprite.body.width / 2;
+            const halfHeight = this.sprite.body.height / 2;
+            
+            // The collision box is offset to the bottom of the sprite
+            // Account for this offset when predicting collision positions
+            const offsetX = this.sprite.body.offset.x;
+            const offsetY = this.sprite.body.offset.y;
+            
+            // Calculate the actual collision box center (not sprite center)
+            const collisionCenterX = this.sprite.x - CONFIG.TILE_SIZE / 2 + offsetX + halfWidth;
+            const collisionCenterY = this.sprite.y - CONFIG.TILE_SIZE / 2 + offsetY + halfHeight;
+            
+            const predictX = collisionCenterX + vx * speed * dt;
+            const predictY = collisionCenterY + vy * speed * dt;
 
             // Check X axis - use predicted Y position for accurate diagonal collision
-            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
-            const tileCheckYForX1 = Math.floor((predictY - halfSize) / CONFIG.TILE_SIZE);
-            const tileCheckYForX2 = Math.floor((predictY + halfSize) / CONFIG.TILE_SIZE);
+            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
+            const tileCheckYForX1 = Math.floor((predictY - halfHeight) / CONFIG.TILE_SIZE);
+            const tileCheckYForX2 = Math.floor((predictY + halfHeight) / CONFIG.TILE_SIZE);
             if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
                 !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
                 this.sprite.body.setVelocityX(0);
             }
 
             // Check Y axis - use predicted X position for accurate diagonal collision
-            const tileCheckY = Math.floor((predictY + (vy > 0 ? halfSize : -halfSize)) / CONFIG.TILE_SIZE);
-            const tileCheckXForY1 = Math.floor((predictX - halfSize) / CONFIG.TILE_SIZE);
-            const tileCheckXForY2 = Math.floor((predictX + halfSize) / CONFIG.TILE_SIZE);
+            const tileCheckY = Math.floor((predictY + (vy > 0 ? halfHeight : -halfHeight)) / CONFIG.TILE_SIZE);
+            const tileCheckXForY1 = Math.floor((predictX - halfWidth) / CONFIG.TILE_SIZE);
+            const tileCheckXForY2 = Math.floor((predictX + halfWidth) / CONFIG.TILE_SIZE);
             if (!dungeon.isWalkable(tileCheckXForY1, tileCheckY) ||
                 !dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
                 this.sprite.body.setVelocityY(0);
