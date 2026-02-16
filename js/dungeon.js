@@ -201,7 +201,7 @@ class Dungeon {
 
                         if (hasDoorFrame) {
                             const room = neighbor.room;
-                            const doorType = room.type === 'locked' ? 'locked' : 'normal';
+                            const doorType = (room.type === 'locked' || room.type === 'boss') ? 'locked' : 'normal';
                             // Avoid duplicate doors at same position
                             const exists = this.doors.some(d => d.x === x && d.y === y);
                             if (!exists) {
@@ -334,6 +334,15 @@ class Dungeon {
             // Locked rooms always have a key somewhere in a prior room
             if (room.type === 'locked') {
                 const priorRoom = this.rooms[Math.max(0, this.rooms.indexOf(room) - 1)];
+                const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
+                const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
+                this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+            }
+
+            // Boss/escape room requires a key: place it in the previous room
+            if (room.type === 'boss') {
+                const bossIndex = this.rooms.indexOf(room);
+                const priorRoom = bossIndex > 0 ? this.rooms[bossIndex - 1] : room;
                 const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
                 const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
                 this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
