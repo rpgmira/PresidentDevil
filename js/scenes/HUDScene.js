@@ -63,7 +63,7 @@ class HUDScene extends Phaser.Scene {
             const label = this.add.text(sx, slotY - slotSize / 2 - 10, `${i + 1}`, {
                 fontSize: '10px', fill: '#aaa', fontFamily: 'monospace'
             }).setOrigin(0.5);
-            const icon = this.add.sprite(sx, slotY, '__DEFAULT').setDisplaySize(slotSize - 10, slotSize - 10).setVisible(false);
+            const icon = this.add.sprite(sx, slotY, '__DEFAULT').setDisplaySize(slotSize - 4, slotSize - 4).setVisible(false);
             const itemText = this.add.text(sx, slotY + 8, '', {
                 fontSize: '7px', fill: '#ccc', fontFamily: 'monospace'
             }).setOrigin(0.5);
