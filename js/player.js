@@ -29,6 +29,7 @@ class Player {
         // Sprite is 16x16, so offset vertically by (16 - 6) = 10 pixels to bottom-align
         this.collisionOffsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
         this.collisionOffsetY = CONFIG.TILE_SIZE - collisionHeight;
+        this.halfTileSize = CONFIG.TILE_SIZE / 2;  // Cache for collision calculations
         this.sprite.body.setOffset(this.collisionOffsetX, this.collisionOffsetY);
         this.sprite.body.setCollideWorldBounds(false);
 
@@ -225,8 +226,8 @@ class Player {
             const halfHeight = this.sprite.body.height / 2;
             
             // Calculate the actual collision box center (not sprite center)
-            const collisionCenterX = this.sprite.x - CONFIG.TILE_SIZE / 2 + this.collisionOffsetX + halfWidth;
-            const collisionCenterY = this.sprite.y - CONFIG.TILE_SIZE / 2 + this.collisionOffsetY + halfHeight;
+            const collisionCenterX = this.sprite.x - this.halfTileSize + this.collisionOffsetX + halfWidth;
+            const collisionCenterY = this.sprite.y - this.halfTileSize + this.collisionOffsetY + halfHeight;
             
             const predictX = collisionCenterX + vx * speed * dt;
             const predictY = collisionCenterY + vy * speed * dt;
