@@ -122,9 +122,10 @@ class Player {
             }
         }
 
-        // Slow health regeneration (0.25 HP per second)
-        if (this.hp < this.maxHp) {
-            this.hp = Math.min(this.hp + (0.25 * delta / 1000), this.maxHp);
+        // Slow health regeneration (0.25 HP per second) up to 50% of max HP
+        const regenLimit = this.maxHp * 0.5;
+        if (this.hp < regenLimit) {
+            this.hp = Math.min(this.hp + (0.25 * delta / 1000), regenLimit);
         }
 
         // Cooldowns
