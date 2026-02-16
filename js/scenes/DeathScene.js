@@ -86,13 +86,23 @@ class DeathScene extends Phaser.Scene {
         });
 
         // Delay input to prevent accidental restart
+        let canRetry = false;
+        const returnToTitle = () => {
+            if (!canRetry || this._restarting) return;
+            this._restarting = true;
+            this.scene.start('TitleScene');
+        };
+
+        this.input.keyboard.on('keydown', returnToTitle);
+        this.input.on('pointerdown', returnToTitle);
+
         this.time.delayedCall(1000, () => {
-            this.input.keyboard.once('keydown', () => {
-                this.scene.start('TitleScene');
-            });
-            this.input.once('pointerdown', () => {
-                this.scene.start('TitleScene');
-            });
+            canRetry = true;
+        });
+
+        this.events.once('shutdown', () => {
+            this.input.keyboard.off('keydown', returnToTitle);
+            this.input.off('pointerdown', returnToTitle);
         });
     }
 
