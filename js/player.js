@@ -126,6 +126,12 @@ class Player {
             }
         }
 
+        // Slow health regeneration (0.25 HP per second) up to 50% of max HP
+        const regenLimit = this.maxHp * 0.5;
+        if (this.hp < regenLimit) {
+            this.hp = Math.min(this.hp + (0.25 * delta / 1000), regenLimit);
+        }
+
         // Cooldowns
         if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
         if (this.rangedCooldown > 0) this.rangedCooldown -= delta;
@@ -248,32 +254,12 @@ class Player {
             let canMoveX = true;
             let canMoveY = true;
 
-            // Check X movement - verify key points along sprite height
-            if (vx !== 0) {
-                const checkX = vx > 0 ? Math.floor(nextRight / CONFIG.TILE_SIZE) : Math.floor(nextLeft / CONFIG.TILE_SIZE);
-                // Check fewer points for smoother corridor navigation
-                const topTileY = Math.floor((nextTop + 2) / CONFIG.TILE_SIZE);    // Slightly inset
-                const bottomTileY = Math.floor((nextBottom - 2) / CONFIG.TILE_SIZE); // Slightly inset
-                
-                if (!dungeon.isWalkable(checkX, topTileY) || !dungeon.isWalkable(checkX, bottomTileY)) {
-                    canMoveX = false;
-                }
-            }
-
-            // Check Y movement - verify key points along sprite width
-            if (vy !== 0) {
-                const checkY = vy > 0 ? Math.floor(nextBottom / CONFIG.TILE_SIZE) : Math.floor(nextTop / CONFIG.TILE_SIZE);
-                // Check fewer points for smoother corridor navigation
-                const leftTileX = Math.floor((nextLeft + 2) / CONFIG.TILE_SIZE);   // Slightly inset
-                const rightTileX = Math.floor((nextRight - 2) / CONFIG.TILE_SIZE); // Slightly inset
-                
-                if (!dungeon.isWalkable(leftTileX, checkY) || !dungeon.isWalkable(rightTileX, checkY)) {
-                    canMoveY = false;
-                }
-            }
-
-            // Apply velocity only for valid movement directions
-            if (!canMoveX) {
+            // Check X axis - use predicted Y position for accurate diagonal collision
+            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
+            const tileCheckYForX1 = Math.floor((predictY - halfHeight) / CONFIG.TILE_SIZE);
+            const tileCheckYForX2 = Math.floor((predictY + halfHeight) / CONFIG.TILE_SIZE);
+            if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
+                !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
                 this.sprite.body.setVelocityX(0);
             }
             

@@ -201,7 +201,10 @@ class Dungeon {
 
                         if (hasDoorFrame) {
                             const room = neighbor.room;
-                            const doorType = room.type === 'locked' ? 'locked' : 'normal';
+                            const doorType = (
+                                (room.type === 'locked' || room.type === 'boss') &&
+                                this.rooms.indexOf(room) > 0
+                            ) ? 'locked' : 'normal';
                             // Avoid duplicate doors at same position
                             const exists = this.doors.some(d => d.x === x && d.y === y);
                             if (!exists) {
@@ -293,6 +296,14 @@ class Dungeon {
     _placeItems() {
         this.itemSpawns = [];
         const scavengerBonus = META.getScavengerBonus(); // 0, 0.15, or 0.30
+        const placeKeyBeforeRoom = (room) => {
+            const roomIndex = this.rooms.indexOf(room);
+            if (roomIndex <= 0) return;
+            const priorRoom = this.rooms[roomIndex - 1];
+            const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
+            const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
+            this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+        };
         for (const room of this.rooms) {
             if (room.type === 'start') continue;
 
@@ -309,7 +320,7 @@ class Dungeon {
                 // Decide item type
                 const roll = Math.random();
                 let itemType;
-                if (roll < 0.3) itemType = 'health';
+                if (roll < 0.4) itemType = 'health';
                 else if (roll < 0.5) itemType = 'ammo_pistol';
                 else if (roll < 0.6) itemType = 'ammo_shotgun';
                 else if (roll < 0.65) itemType = 'ammo_crossbow';
@@ -333,10 +344,12 @@ class Dungeon {
 
             // Locked rooms always have a key somewhere in a prior room
             if (room.type === 'locked') {
-                const priorRoom = this.rooms[Math.max(0, this.rooms.indexOf(room) - 1)];
-                const kx = Phaser.Math.Between(priorRoom.x + 1, priorRoom.x + priorRoom.width - 2);
-                const ky = Phaser.Math.Between(priorRoom.y + 1, priorRoom.y + priorRoom.height - 2);
-                this.itemSpawns.push({ x: kx, y: ky, type: 'key', room: priorRoom });
+                placeKeyBeforeRoom(room);
+            }
+
+            // Boss/escape room requires a key: place it in the previous room
+            if (room.type === 'boss') {
+                placeKeyBeforeRoom(room);
             }
         }
     }
