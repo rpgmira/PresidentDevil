@@ -309,7 +309,7 @@ class Dungeon {
                 // Decide item type
                 const roll = Math.random();
                 let itemType;
-                if (roll < 0.3) itemType = 'health';
+                if (roll < 0.4) itemType = 'health';
                 else if (roll < 0.5) itemType = 'ammo_pistol';
                 else if (roll < 0.6) itemType = 'ammo_shotgun';
                 else if (roll < 0.65) itemType = 'ammo_crossbow';

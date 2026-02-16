@@ -122,6 +122,11 @@ class Player {
             }
         }
 
+        // Slow health regeneration (0.25 HP per second)
+        if (this.hp < this.maxHp) {
+            this.hp = Math.min(this.hp + (0.25 * delta / 1000), this.maxHp);
+        }
+
         // Cooldowns
         if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
         if (this.rangedCooldown > 0) this.rangedCooldown -= delta;
