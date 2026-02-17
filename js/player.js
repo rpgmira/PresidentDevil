@@ -20,18 +20,22 @@ class Player {
         );
         this.sprite.setDepth(60);
         scene.physics.add.existing(this.sprite);
-        // Reduced collision box: only legs block movement (bottom portion of sprite)
-        // Width: 10 pixels (reduced from 14), Height: 6 pixels (covers legs area)
-        const collisionWidth = 10;
+        
+        // Improved collision box: smaller and more centered for better movement
+        const collisionWidth = 8;  // Reduced from 10 for smoother wall navigation
         const collisionHeight = 6;
         this.sprite.body.setSize(collisionWidth, collisionHeight);
-        // Offset to position collision box at bottom of sprite
-        // Sprite is 16x16, so offset vertically by (16 - 6) = 10 pixels to bottom-align
-        this.collisionOffsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
-        this.collisionOffsetY = CONFIG.TILE_SIZE - collisionHeight;
-        this.halfTileSize = CONFIG.TILE_SIZE / 2;  // Cache for collision calculations
-        this.sprite.body.setOffset(this.collisionOffsetX, this.collisionOffsetY);
+        
+        // Center the collision box horizontally and place at bottom for feet position
+        const collisionOffsetX = (CONFIG.TILE_SIZE - collisionWidth) / 2;
+        const collisionOffsetY = CONFIG.TILE_SIZE - collisionHeight - 1; // -1 to avoid edge issues
+        this.sprite.body.setOffset(collisionOffsetX, collisionOffsetY);
         this.sprite.body.setCollideWorldBounds(false);
+
+        // Store values for easier access and for anti-stuck/collision logic
+        this.halfTileSize = CONFIG.TILE_SIZE / 2;
+        this.collisionOffsetX = collisionOffsetX;
+        this.collisionOffsetY = collisionOffsetY;
 
         // Animation state
         this._currentAnim = '';
@@ -104,6 +108,14 @@ class Player {
 
         // Drop key
         this.dropKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+
+        // Show range key
+        this.showRangeKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+        // Attack effect visualization
+        this.attackEffect = null;
+        this.attackEffectTimer = 0;
+        this.showAttackEffect = true;
     }
 
     update(delta, dungeon) {
@@ -132,6 +144,14 @@ class Player {
         if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
         if (this.rangedCooldown > 0) this.rangedCooldown -= delta;
 
+        // Attack effect timer
+        if (this.attackEffectTimer > 0) {
+            this.attackEffectTimer -= delta;
+            if (this.attackEffectTimer <= 0) {
+                this._hideAttackEffect();
+            }
+        }
+
         // Handle inventory selection
         this._handleInventoryInput();
 
@@ -140,11 +160,22 @@ class Player {
             this._dropSelectedItem();
         }
 
+        // Handle manual attack preview
+        if (Phaser.Input.Keyboard.JustDown(this.showRangeKey)) {
+            this._showAttackPreview();
+        }
+
+        // Prevent getting stuck in walls
+        this._preventStuckInWalls(dungeon);
+
         // Movement
         this._handleMovement(delta, dungeon);
 
         // Update animation
         this._updateAnimation();
+
+        // Update attack effect position if visible
+        this.updateAttackEffectPosition();
     }
 
     _updateAnimation() {
@@ -212,9 +243,9 @@ class Player {
             else if (vy > 0) this.facing = 'down';
         }
 
-        // Normalize diagonal movement
+        // Normalize diagonal movement for consistent speed
         if (vx !== 0 && vy !== 0) {
-            const len = Math.sqrt(2);
+            const len = Math.sqrt(vx * vx + vy * vy);
             vx /= len;
             vy /= len;
         }
@@ -224,35 +255,58 @@ class Player {
         // Use Phaser physics velocity instead of manual position updates
         this.sprite.body.setVelocity(vx * speed, vy * speed);
 
-        // Tile-based collision prediction: stop movement axes that would enter walls
+        // Improved collision detection considering the full sprite bounds
         if (this.moving) {
-            const dt = delta / 1000;
-            // Use actual collision box dimensions (positioned at bottom of sprite)
-            const halfWidth = this.sprite.body.width / 2;
-            const halfHeight = this.sprite.body.height / 2;
+            const lookAhead = 3; // pixels to look ahead
             
-            // Calculate the actual collision box center (not sprite center)
-            const collisionCenterX = this.sprite.x - this.halfTileSize + this.collisionOffsetX + halfWidth;
-            const collisionCenterY = this.sprite.y - this.halfTileSize + this.collisionOffsetY + halfHeight;
+            // Match physics body width (8px) to avoid over-conservative tile checks
+            const effectiveSize = 8; // Match physics collision box width
+            const halfEffectiveSize = effectiveSize / 2;
             
-            const predictX = collisionCenterX + vx * speed * dt;
-            const predictY = collisionCenterY + vy * speed * dt;
+            const spriteLeft = this.sprite.x - halfEffectiveSize;
+            const spriteTop = this.sprite.y - halfEffectiveSize;
+            const spriteRight = this.sprite.x + halfEffectiveSize;
+            const spriteBottom = this.sprite.y + halfEffectiveSize;
 
-            // Check X axis using current Y position, so movement can slide along walls
-            const tileCheckX = Math.floor((predictX + (vx > 0 ? halfWidth : -halfWidth)) / CONFIG.TILE_SIZE);
-            const tileCheckYForX1 = Math.floor((collisionCenterY - halfHeight) / CONFIG.TILE_SIZE);
-            const tileCheckYForX2 = Math.floor((collisionCenterY + halfHeight) / CONFIG.TILE_SIZE);
-            if (!dungeon.isWalkable(tileCheckX, tileCheckYForX1) ||
-                !dungeon.isWalkable(tileCheckX, tileCheckYForX2)) {
-                this.sprite.body.setVelocityX(0);
+            // Calculate next position with lookahead
+            const nextLeft = spriteLeft + vx * lookAhead;
+            const nextTop = spriteTop + vy * lookAhead;
+            const nextRight = spriteRight + vx * lookAhead;
+            const nextBottom = spriteBottom + vy * lookAhead;
+
+            let canMoveX = true;
+            let canMoveY = true;
+
+            // Check X movement - verify key points along sprite height
+            if (vx !== 0) {
+                const checkX = vx > 0 ? Math.floor(nextRight / CONFIG.TILE_SIZE) : Math.floor(nextLeft / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const topTileY = Math.floor((nextTop + 2) / CONFIG.TILE_SIZE);    // Slightly inset
+                const bottomTileY = Math.floor((nextBottom - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(checkX, topTileY) || !dungeon.isWalkable(checkX, bottomTileY)) {
+                    canMoveX = false;
+                }
             }
 
-            // Check Y axis using current X position, so movement can slide along walls
-            const tileCheckY = Math.floor((predictY + (vy > 0 ? halfHeight : -halfHeight)) / CONFIG.TILE_SIZE);
-            const tileCheckXForY1 = Math.floor((collisionCenterX - halfWidth) / CONFIG.TILE_SIZE);
-            const tileCheckXForY2 = Math.floor((collisionCenterX + halfWidth) / CONFIG.TILE_SIZE);
-            if (!dungeon.isWalkable(tileCheckXForY1, tileCheckY) ||
-                !dungeon.isWalkable(tileCheckXForY2, tileCheckY)) {
+            // Check Y movement - verify key points along sprite width
+            if (vy !== 0) {
+                const checkY = vy > 0 ? Math.floor(nextBottom / CONFIG.TILE_SIZE) : Math.floor(nextTop / CONFIG.TILE_SIZE);
+                // Check fewer points for smoother corridor navigation
+                const leftTileX = Math.floor((nextLeft + 2) / CONFIG.TILE_SIZE);   // Slightly inset
+                const rightTileX = Math.floor((nextRight - 2) / CONFIG.TILE_SIZE); // Slightly inset
+                
+                if (!dungeon.isWalkable(leftTileX, checkY) || !dungeon.isWalkable(rightTileX, checkY)) {
+                    canMoveY = false;
+                }
+            }
+
+            // Apply velocity only for valid movement directions
+            if (!canMoveX) {
+                this.sprite.body.setVelocityX(0);
+            }
+            
+            if (!canMoveY) {
                 this.sprite.body.setVelocityY(0);
             }
         }
@@ -307,6 +361,11 @@ class Player {
                 }
                 AUDIO.playInventorySelect();
                 this.selectedSlot = slotIndex;
+                
+                // Show attack preview when selecting a melee weapon
+                if (item.weapon && item.weapon.type === 'melee' && item.durability > 0) {
+                    this._showAttackPreview();
+                }
             }
         }
 
@@ -317,6 +376,11 @@ class Player {
                 this.activeMeleeSlot = -1;
                 this.meleeWeapon = CONFIG.WEAPONS.FISTS;
             }
+        }
+        
+        // Show fists preview when selecting them
+        if (Phaser.Input.Keyboard.JustDown(this.numKeys[0])) {
+            this._showAttackPreview();
         }
     }
 
@@ -363,6 +427,10 @@ class Player {
 
     die() {
         this.alive = false;
+        
+        // Clean up attack visualization
+        this._hideAttackEffect();
+        
         AUDIO.playPlayerDeath();
         AUDIO.stopAll();
 
@@ -522,5 +590,292 @@ class Player {
             x: Math.floor(this.sprite.x / CONFIG.TILE_SIZE),
             y: Math.floor(this.sprite.y / CONFIG.TILE_SIZE)
         };
+    }
+
+    // Helper method to detect and fix player getting stuck in walls
+    _preventStuckInWalls(dungeon) {
+        // Use a smaller area for stuck detection to allow corridor navigation
+        const checkSize = 10; // Smaller than sprite size for corridor tolerance
+        const halfCheckSize = checkSize / 2;
+        
+        const checkLeft = this.sprite.x - halfCheckSize;
+        const checkTop = this.sprite.y - halfCheckSize;
+        const checkRight = this.sprite.x + halfCheckSize;
+        const checkBottom = this.sprite.y + halfCheckSize;
+        
+        // Only check critical points that would indicate being truly stuck
+        const checkPoints = [
+            { x: this.sprite.x, y: checkTop + 2 },          // Center-top
+            { x: this.sprite.x, y: checkBottom - 2 },       // Center-bottom
+            { x: checkLeft + 2, y: this.sprite.y },         // Left-center
+            { x: checkRight - 2, y: this.sprite.y },        // Right-center
+        ];
+        
+        let stuckCount = 0;
+        for (const point of checkPoints) {
+            const tileX = Math.floor(point.x / CONFIG.TILE_SIZE);
+            const tileY = Math.floor(point.y / CONFIG.TILE_SIZE);
+            
+            if (!dungeon.isWalkable(tileX, tileY)) {
+                stuckCount++;
+            }
+        }
+        
+        // Only consider stuck if multiple critical points are in walls
+        if (stuckCount >= 2) {
+            const playerTileX = Math.floor(this.sprite.x / CONFIG.TILE_SIZE);
+            const playerTileY = Math.floor(this.sprite.y / CONFIG.TILE_SIZE);
+            const nearestWalkable = this._findNearestWalkableTile(dungeon, playerTileX, playerTileY);
+            if (nearestWalkable) {
+                this.sprite.x = nearestWalkable.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                this.sprite.y = nearestWalkable.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+                this.sprite.body.setVelocity(0, 0);
+            }
+        }
+    }
+
+    _findNearestWalkableTile(dungeon, startX, startY) {
+        // Search in expanding radius for walkable tile
+        for (let radius = 1; radius <= 5; radius++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (Math.abs(dx) === radius || Math.abs(dy) === radius) {
+                        const checkX = startX + dx;
+                        const checkY = startY + dy;
+                        if (dungeon.isWalkable(checkX, checkY)) {
+                            return { x: checkX, y: checkY };
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    // ===== ATTACK EFFECT VISUALIZATION =====
+
+    _showAttackPreview() {
+        // Show attack effect in current facing direction
+        this._showAttackEffect(this.facing, 1200);
+    }
+
+    _showAttackEffect(direction, duration = 600) {
+        this._hideAttackEffect(); // Remove any existing effect first
+
+        // Create attack effect graphics
+        this.attackEffect = this.scene.add.graphics();
+        this.attackEffect.setDepth(59); // Above player but below walls
+        
+        // Get current weapon for styling
+        const weapon = this.meleeWeapon;
+        let color = 0xFFFFAA; // Light yellow for fists
+        let effectSize = CONFIG.PLAYER_MELEE_RANGE;
+        
+        if (weapon.name === 'Baseball Bat') {
+            color = 0x8B4513; // Brown
+            effectSize += 5; // Slightly longer reach
+        } else if (weapon.name === 'Knife') {
+            color = 0xC0C0C0; // Silver
+            effectSize -= 3; // Shorter but faster
+        } else if (weapon.name === 'Chainsaw') {
+            color = 0xFF4500; // Orange-red
+            effectSize += 8; // Longer reach
+        }
+
+        // Calculate attack direction and create swing effect
+        const startX = 0;
+        const startY = 0;
+        let endX = 0;
+        let endY = 0;
+        let swingAngle = 0;
+
+        switch (direction) {
+            case 'up':
+                endY = -effectSize;
+                swingAngle = -Math.PI/2;
+                break;
+            case 'down':
+                endY = effectSize;
+                swingAngle = Math.PI/2;
+                break;
+            case 'left':
+                endX = -effectSize;
+                swingAngle = Math.PI;
+                break;
+            case 'right':
+                endX = effectSize;
+                swingAngle = 0;
+                break;
+        }
+
+        // Draw the attack effect as an arc/swing
+        this._drawAttackSwing(startX, startY, endX, endY, swingAngle, color, effectSize);
+
+        // Position at player location
+        this.attackEffect.setPosition(this.sprite.x, this.sprite.y);
+
+        // Set timer and animate
+        this.attackEffectTimer = duration;
+        this._animateAttackEffect();
+    }
+
+    _drawAttackSwing(startX, startY, endX, endY, baseAngle, color, reach) {
+        const weapon = this.meleeWeapon;
+        
+        if (weapon.name === 'Chainsaw') {
+            // Chainsaw - wider, more aggressive effect
+            this._drawChainsaw(baseAngle, color, reach);
+        } else if (weapon.name === 'Baseball Bat') {
+            // Baseball bat - wide arc swing
+            this._drawBatSwing(baseAngle, color, reach);
+        } else if (weapon.name === 'Knife') {
+            // Knife - quick thrust
+            this._drawKnifeThrust(startX, startY, endX, endY, color);
+        } else {
+            // Fists - quick jab with impact burst
+            this._drawFistPunch(startX, startY, endX, endY, color);
+        }
+    }
+
+    _drawFistPunch(startX, startY, endX, endY, color) {
+        // Draw punch line with impact burst
+        this.attackEffect.lineStyle(3, color, 0.8);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(startX, startY);
+        this.attackEffect.lineTo(endX, endY);
+        this.attackEffect.strokePath();
+        
+        // Impact burst at end
+        this.attackEffect.fillStyle(color, 0.4);
+        this.attackEffect.fillCircle(endX, endY, 8);
+        
+        // Speed lines for punch effect
+        const perpX = -endY * 0.3; // Perpendicular for speed lines
+        const perpY = endX * 0.3;
+        
+        this.attackEffect.lineStyle(2, color, 0.6);
+        for (let i = 0; i < 3; i++) {
+            const offset = (i - 1) * 0.4;
+            this.attackEffect.beginPath();
+            this.attackEffect.moveTo(startX + perpX * offset, startY + perpY * offset);
+            this.attackEffect.lineTo(endX * 0.7 + perpX * offset, endY * 0.7 + perpY * offset);
+            this.attackEffect.strokePath();
+        }
+    }
+
+    _drawKnifeThrust(startX, startY, endX, endY, color) {
+        // Sharp thrust line
+        this.attackEffect.lineStyle(4, color, 0.9);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(startX, startY);
+        this.attackEffect.lineTo(endX, endY);
+        this.attackEffect.strokePath();
+        
+        // Sharp point
+        this.attackEffect.fillStyle(0xFFFFFF, 0.8);
+        this.attackEffect.fillCircle(endX, endY, 3);
+    }
+
+    _drawBatSwing(baseAngle, color, reach) {
+        // Wide arc swing
+        const swingArc = Math.PI / 3; // 60 degree swing
+        const startAngle = baseAngle - swingArc / 2;
+        const endAngle = baseAngle + swingArc / 2;
+        
+        this.attackEffect.lineStyle(6, color, 0.7);
+        this.attackEffect.beginPath();
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.strokePath();
+        
+        // Impact area
+        this.attackEffect.fillStyle(color, 0.3);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(0, 0);
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.closePath();
+        this.attackEffect.fillPath();
+    }
+
+    _drawChainsaw(baseAngle, color, reach) {
+        // Aggressive wide area with particles
+        const swingArc = Math.PI / 2; // 90 degree swing
+        const startAngle = baseAngle - swingArc / 2;
+        const endAngle = baseAngle + swingArc / 2;
+        
+        // Main cutting area
+        this.attackEffect.fillStyle(color, 0.5);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(0, 0);
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.closePath();
+        this.attackEffect.fillPath();
+        
+        // Cutting edge
+        this.attackEffect.lineStyle(4, 0xFFFFFF, 0.9);
+        this.attackEffect.beginPath();
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.strokePath();
+        
+        // Sparks/particles effect
+        for (let i = 0; i < 8; i++) {
+            const angle = startAngle + (endAngle - startAngle) * Math.random();
+            const sparkReach = reach + Math.random() * 10;
+            const sparkX = Math.cos(angle) * sparkReach;
+            const sparkY = Math.sin(angle) * sparkReach;
+            
+            this.attackEffect.fillStyle(0xFFFF00, 0.8);
+            this.attackEffect.fillCircle(sparkX, sparkY, 2);
+        }
+    }
+
+    _animateAttackEffect() {
+        if (!this.attackEffect) return;
+
+        // Quick flash and fade animation
+        this.attackEffect.setAlpha(0);
+        
+        this.scene.tweens.add({
+            targets: this.attackEffect,
+            alpha: 0.9,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 100,
+            ease: 'Power2',
+            yoyo: true,
+            onComplete: () => {
+                if (this.attackEffect) {
+                    this.scene.tweens.add({
+                        targets: this.attackEffect,
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        });
+    }
+
+    _hideAttackEffect() {
+        if (this.attackEffect) {
+            // Stop any tweens on the effect
+            this.scene.tweens.killTweensOf(this.attackEffect);
+            this.attackEffect.destroy();
+            this.attackEffect = null;
+        }
+        this.attackEffectTimer = 0;
+    }
+
+    updateAttackEffectPosition() {
+        if (this.attackEffect) {
+            this.attackEffect.setPosition(this.sprite.x, this.sprite.y);
+        }
+    }
+
+    // Clean up resources when player is destroyed
+    destroy() {
+        this._hideAttackEffect();
+        if (this.sprite) {
+            this.sprite.destroy();
+        }
     }
 }

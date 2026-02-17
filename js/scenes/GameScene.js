@@ -94,6 +94,10 @@ class GameScene extends Phaser.Scene {
         this.doorSprites = [];
         this._createDoorSprites();
 
+        // Furniture sprites
+        this.furnitureSprites = [];
+        this._createFurnitureSprites();
+
         // Panic event state
         this.panicState = {
             active: false,
@@ -105,6 +109,15 @@ class GameScene extends Phaser.Scene {
 
         // HUD (separate scene overlay at zoom 1)
         this.scene.launch('HUDScene');
+
+        // Debug indicator - simplified
+        this.add.text(10, 10, 'DEBUG: Doors visible', {
+            fontSize: '10px',
+            fill: '#ffff00',
+            fontFamily: 'monospace',
+            backgroundColor: '#000044',
+            padding: { x: 2, y: 1 }
+        }).setDepth(100).setScrollFactor(0);
 
         // Flickering light
         this.flickerOffset = 0;
@@ -480,6 +493,8 @@ class GameScene extends Phaser.Scene {
     }
 
     _createDoorSprites() {
+        console.log('Creating door sprites for', this.dungeon.doors.length, 'doors');
+        
         for (const door of this.dungeon.doors) {
             const px = door.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const py = door.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
@@ -490,19 +505,79 @@ class GameScene extends Phaser.Scene {
             if (this.textures.exists(texKey)) {
                 sprite = this.add.sprite(px, py, texKey);
             } else {
-                // Fallback to colored rectangle
+                // Fallback to colored rectangle with distinct colors
                 let color;
-                if (door.type === 'locked') color = CONFIG.COLORS.DOOR_LOCKED;
-                else if (door.type === 'shortcut') color = 0x66aaff;
-                else color = CONFIG.COLORS.DOOR;
-                sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2, color);
+                if (door.type === 'locked') color = 0xFF4444; // Bright red for locked
+                else if (door.type === 'shortcut') color = 0x4444FF; // Blue for shortcut
+                else if (door.type === 'sealed') color = 0x996633; // Brown for sealed
+                else color = 0x44AA44; // Green for normal
+                sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 4, CONFIG.TILE_SIZE - 4, color);
+                sprite.setStrokeStyle(2, 0xFFFFFF); // White border
             }
             sprite.setDepth(55);
             sprite.setData('door', door);
-            sprite.setData('label', this._createWorldLabel(px, py - 12, this._getDoorLabel(door.type), '#ffdd88'));
-            sprite.setVisible(!door.open);
+            
+            // Create proper door label
+            let labelText;
+            if (door.type === 'locked') labelText = '🔒';
+            else if (door.type === 'shortcut') labelText = '⇄';
+            else if (door.type === 'sealed') labelText = '❌';
+            else labelText = '➤';
+            
+            sprite.setData('label', this._createWorldLabel(px, py - 12, labelText, '#ffdd88'));
+            
+            // Make all doors visible for debugging
+            sprite.setVisible(true);
+            // If door is open, make it semi-transparent
+            if (door.open) {
+                sprite.setAlpha(0.6);
+                sprite.setTint(0x88ff88); // Green tint for open doors
+            }
             this.doorSprites.push(sprite);
+            
+            console.log(`Door sprite created at (${door.x}, ${door.y}) type: ${door.type}`);
         }
+    }
+
+    _createFurnitureSprites() {
+        for (const furniture of this.dungeon.furniture) {
+            const px = furniture.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+            const py = furniture.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+
+            const texKey = `tile_${furniture.type}`;
+            
+            let sprite;
+            if (this.textures.exists(texKey)) {
+                sprite = this.add.sprite(px, py, texKey);
+            } else {
+                // Fallback to colored rectangle if texture doesn't exist
+                sprite = this.add.rectangle(px, py, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2, 0x888888);
+            }
+            
+            sprite.setDepth(10); // Render furniture above floor but below items/enemies
+            sprite.setData('furniture', furniture);
+            
+            // Add collision if it's a blocking piece of furniture
+            if (this._isFurnitureBlocking(furniture.type)) {
+                this.physics.add.existing(sprite, true); // true = static body
+                sprite.body.setSize(CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
+                
+                // Add collision with player
+                this.physics.add.collider(this.player.sprite, sprite);
+            }
+            
+            this.furnitureSprites.push(sprite);
+        }
+    }
+
+    _isFurnitureBlocking(furnitureType) {
+        // Define which furniture types should block movement
+        const blockingTypes = [
+            'desk', 'computer_desk', 'filing_cabinet', 'bookshelf', 
+            'conference_table', 'water_cooler', 'copy_machine', 'coffee_machine',
+            'safe', 'vending_machine', 'whiteboard'
+        ];
+        return blockingTypes.includes(furnitureType);
     }
 
     _checkItemPickups() {
@@ -629,27 +704,33 @@ class GameScene extends Phaser.Scene {
                         this.player.keys--;
                         door.open = true;
                         door.type = 'normal';
-                        sprite.setVisible(false);
+                        // Don't hide, just make semi-transparent and green
+                        sprite.setAlpha(0.5);
+                        sprite.setTint(0x88ff88);
                         AUDIO.playDoorOpen();
                         const label = sprite.getData('label');
-                        if (label) label.setVisible(false);
+                        if (label) label.setText('[OPEN]');
                     }
                 } else if (door.type === 'shortcut') {
                     // One-way: only opens from the source room side
                     const playerRoom = this.dungeon.getRoomAt(this.player.sprite.x, this.player.sprite.y);
                     if (playerRoom === door.sourceRoom || !door.sourceRoom) {
                         door.open = true;
-                        sprite.setVisible(false);
+                        // Don't hide, just make semi-transparent and green
+                        sprite.setAlpha(0.5);
+                        sprite.setTint(0x88ff88);
                         AUDIO.playDoorOpen();
                         const label = sprite.getData('label');
-                        if (label) label.setVisible(false);
+                        if (label) label.setText('[SHORTCUT]');
                     }
                 } else if (door.type === 'normal' && !door.room.doorsSealed) {
                     door.open = true;
-                    sprite.setVisible(false);
+                    // Don't hide, just make semi-transparent and green
+                    sprite.setAlpha(0.5);
+                    sprite.setTint(0x88ff88);
                     AUDIO.playDoorOpen();
                     const label = sprite.getData('label');
-                    if (label) label.setVisible(false);
+                    if (label) label.setText('[OPEN]');
                 }
             }
         }
@@ -784,14 +865,16 @@ class GameScene extends Phaser.Scene {
             const door = sprite.getData('door');
             if (door.room === room) {
                 door.open = true;
-                sprite.setVisible(false);
+                // Don't hide, just make semi-transparent and green
+                sprite.setAlpha(0.5);
+                sprite.setTint(0x88ff88);
                 if (sprite.setTexture) {
                     sprite.setTexture(TILE_SPRITE_GEN.getDoorTextureKey(door.type));
                 } else if (sprite.setFillStyle) {
                     sprite.setFillStyle(CONFIG.COLORS.DOOR);
                 }
                 const label = sprite.getData('label');
-                if (label) label.setVisible(false);
+                if (label) label.setText('[OPEN]');
             }
         }
 
@@ -887,7 +970,8 @@ class GameScene extends Phaser.Scene {
         const title = this.add.text(
             CONFIG.GAME_WIDTH / 2, 80,
             'CHOOSE EVOLUTION', {
-                fontSize: '18px', fill: '#ffcc00', fontFamily: 'monospace', fontStyle: 'bold'
+                fontSize: '18px', fill: '#ffcc00', fontFamily: 'monospace',
+                stroke: '#000000', strokeThickness: 2
             }
         ).setOrigin(0.5).setDepth(301).setScrollFactor(0);
 
@@ -904,13 +988,14 @@ class GameScene extends Phaser.Scene {
                 .setInteractive({ useHandCursor: true });
 
             const nameText = this.add.text(cx, cy - 40, choice.label, {
-                fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', fontStyle: 'bold',
-                align: 'center'
+                fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace',
+                align: 'center', stroke: '#000000', strokeThickness: 1
             }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
 
             const descText = this.add.text(cx, cy + 10, choice.desc, {
                 fontSize: '10px', fill: '#cccccc', fontFamily: 'monospace',
-                align: 'center', wordWrap: { width: cardWidth - 20 }
+                align: 'center', wordWrap: { width: cardWidth - 20 },
+                stroke: '#000000', strokeThickness: 1
             }).setOrigin(0.5).setDepth(302).setScrollFactor(0);
 
             uiGroup.push(card, nameText, descText);
@@ -1164,10 +1249,10 @@ class GameScene extends Phaser.Scene {
     }
 
     _getDoorLabel(type) {
-        if (type === 'locked') return 'LOCKED';
-        if (type === 'sealed') return 'SEALED';
-        if (type === 'shortcut') return 'SHORTCUT';
-        return 'DOOR';
+        if (type === 'locked') return 'DOOR 🔒';
+        if (type === 'sealed') return 'SEALED ❌';
+        if (type === 'shortcut') return 'SHORTCUT ⇄';
+        return 'DOOR ➤';
     }
 
     // --- Cleanup on scene transition to prevent memory leaks ---
@@ -1200,6 +1285,14 @@ class GameScene extends Phaser.Scene {
             if (label) label.destroy();
         }
         this.doorSprites = [];
+
+        // Clean up furniture sprites
+        if (this.furnitureSprites) {
+            for (const sprite of this.furnitureSprites) {
+                if (sprite) sprite.destroy();
+            }
+            this.furnitureSprites = [];
+        }
 
         // Clean up player label
         if (this.playerLabel) this.playerLabel.destroy();

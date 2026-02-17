@@ -404,7 +404,7 @@ class Enemy {
     _showTellIndicator(symbol, color) {
         const indicator = this.scene.add.text(
             this.sprite.x, this.sprite.y - 18, symbol,
-            { fontSize: '12px', fill: `#${color.toString(16).padStart(6, '0')}`, fontFamily: 'monospace', fontStyle: 'bold' }
+            { fontSize: '12px', fill: `#${color.toString(16).padStart(6, '0')}`, fontFamily: 'monospace' }
         ).setOrigin(0.5).setDepth(70);
         this.scene.tweens.add({
             targets: indicator,
