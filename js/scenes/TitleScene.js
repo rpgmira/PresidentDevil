@@ -8,7 +8,7 @@ class TitleScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('cover_art', 'sprites/cover_pixel_512.png');
+        this.load.image('reference2', 'sprites/REFERENCE2.png');
     }
 
     create() {
@@ -18,73 +18,84 @@ class TitleScene extends Phaser.Scene {
         // Dark background
         this.cameras.main.setBackgroundColor('#0a0a0a');
 
-        // Cover art — subtle background, centered and faded
-        const cover = this.add.image(cx, cy - 10, 'cover_art');
-        cover.setAlpha(0.25);
+        // Reference art
+        const cover = this.add.image(cx, cy - 10, 'reference2');
+        cover.setAlpha(0.8);
         cover.setOrigin(0.5);
-        // Scale to fit nicely without dominating (about 80% of game height)
         const targetHeight = CONFIG.GAME_HEIGHT * 0.8;
         cover.setScale(targetHeight / cover.height);
         cover.setDepth(0);
-        // Red tint to match the theme and prevent washed-out colors
-        cover.setTint(0xff4444);
 
-        // Title
-        this.add.text(cx, cy - 100, 'PRESIDENT\nDEVIL', {
+        // Title (adjusted position)
+        this.add.text(cx, cy - 150, 'PRESIDENT\\nDEVIL', {
             fontSize: '48px',
-            fill: '#cc1111',
+            fill: '#ff3333',
             fontFamily: 'monospace',
             fontStyle: 'bold',
             align: 'center',
-            lineSpacing: 8
+            lineSpacing: 8,
+            stroke: '#000000',
+            strokeThickness: 3
         }).setOrigin(0.5);
 
-        // Subtitle
-        this.add.text(cx, cy - 20, '"A survival horror where combat becomes uncontrollable."', {
+        // Subtitle (moved up)
+        this.add.text(cx, cy - 120, '"A survival horror where combat becomes uncontrollable."', {
             fontSize: '11px',
-            fill: '#666',
+            fill: '#cccccc',
             fontFamily: 'monospace',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            stroke: '#000000',
+            strokeThickness: 1
         }).setOrigin(0.5);
 
-        // Flavor text
-        this.add.text(cx, cy + 30, 'The President is the Devil.\nYou are his secretary.\nSurvive.', {
+        // Flavor text (moved down to below image)
+        this.add.text(cx, cy + 80, 'The President is the Devil.\nYou are his secretary.\nSurvive.', {
             fontSize: '14px',
-            fill: '#888',
+            fill: '#ffffff',
             fontFamily: 'monospace',
             align: 'center',
-            lineSpacing: 6
+            lineSpacing: 6,
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
-        // Controls
-        this.add.text(cx, cy + 100, 'WASD — Move    |    Mouse — Aim & Shoot\n0-6 — Select Weapons    |    Q — Drop Item', {
+        // Controls (moved down)
+        this.add.text(cx, cy + 130, 'WASD — Move    |    Mouse — Aim & Shoot\n0-6 — Select Weapons    |    Q — Drop Item', {
             fontSize: '10px',
-            fill: '#555',
+            fill: '#aaaaaa',
             fontFamily: 'monospace',
             align: 'center',
-            lineSpacing: 4
+            lineSpacing: 4,
+            stroke: '#000000',
+            strokeThickness: 1
         }).setOrigin(0.5);
 
-        // Start prompt
-        const startText = this.add.text(cx, cy + 150, '[ PRESS ANY KEY TO BEGIN ]', {
+        // Start prompt (moved down)
+        const startText = this.add.text(cx, cy + 170, '[ PRESS ANY KEY TO BEGIN ]', {
             fontSize: '14px',
-            fill: '#cc4444',
-            fontFamily: 'monospace'
+            fill: '#ffff44',
+            fontFamily: 'monospace',
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
-        // Meta-progression currency display
+        // Meta-progression currency display (moved down)
         const metaData = META.load();
-        this.add.text(cx, cy + 185, `Red Ink: ${metaData.currency}  |  Runs: ${metaData.totalRuns}  |  Wins: ${metaData.totalWins}`, {
+        this.add.text(cx, cy + 200, `Red Ink: ${metaData.currency}  |  Runs: ${metaData.totalRuns}  |  Wins: ${metaData.totalWins}`, {
             fontSize: '10px',
-            fill: '#885544',
-            fontFamily: 'monospace'
+            fill: '#ffaa77',
+            fontFamily: 'monospace',
+            stroke: '#000000',
+            strokeThickness: 1
         }).setOrigin(0.5);
 
-        // Upgrades button
-        const upgradeBtn = this.add.text(cx, cy + 215, '[ U — UPGRADES ]', {
+        // Upgrades button (moved down)
+        const upgradeBtn = this.add.text(cx, cy + 225, '[ U — UPGRADES ]', {
             fontSize: '12px',
-            fill: '#cc8844',
-            fontFamily: 'monospace'
+            fill: '#44ddff',
+            fontFamily: 'monospace',
+            stroke: '#000000',
+            strokeThickness: 1
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         upgradeBtn.on('pointerdown', () => this._showUpgradeShop());
 
@@ -143,13 +154,15 @@ class TitleScene extends Phaser.Scene {
         uiGroup.push(overlay);
 
         const title = this.add.text(cx, 30, 'UPGRADES', {
-            fontSize: '24px', fill: '#cc8844', fontFamily: 'monospace', fontStyle: 'bold'
+            fontSize: '24px', fill: '#ffdd66', fontFamily: 'monospace',
+            stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5).setDepth(101);
         uiGroup.push(title);
 
         const metaData = META.load();
         const currencyText = this.add.text(cx, 60, `Red Ink: ${metaData.currency}`, {
-            fontSize: '14px', fill: '#ffaa44', fontFamily: 'monospace'
+            fontSize: '14px', fill: '#ffdd66', fontFamily: 'monospace',
+            stroke: '#000000', strokeThickness: 1
         }).setOrigin(0.5).setDepth(101);
         uiGroup.push(currencyText);
 
@@ -165,7 +178,7 @@ class TitleScene extends Phaser.Scene {
             const canBuy = !maxed && metaData.currency >= def.cost[level];
 
             const label = `${def.name} [Lv${level}/${def.maxLevel}]  ${def.desc}  Cost: ${cost}`;
-            const color = maxed ? '#448844' : (canBuy ? '#cccccc' : '#666666');
+            const color = maxed ? '#44ff44' : (canBuy ? '#ffffff' : '#888888');
 
             const btn = this.add.text(cx, yOff, label, {
                 fontSize: '11px', fill: color, fontFamily: 'monospace'
@@ -190,7 +203,8 @@ class TitleScene extends Phaser.Scene {
 
         yOff += 15;
         const unlockTitle = this.add.text(cx, yOff, '— UNLOCKS —', {
-            fontSize: '12px', fill: '#cc8844', fontFamily: 'monospace'
+            fontSize: '12px', fill: '#44ddff', fontFamily: 'monospace',
+            stroke: '#000000', strokeThickness: 1
         }).setOrigin(0.5).setDepth(101);
         uiGroup.push(unlockTitle);
         yOff += 25;
@@ -204,10 +218,11 @@ class TitleScene extends Phaser.Scene {
             const label = owned
                 ? `✓ ${def.name} — ${def.desc}`
                 : `${def.name} — ${def.desc}  Cost: ${def.cost}`;
-            const color = owned ? '#448844' : (canBuy ? '#cccccc' : '#666666');
+            const color = owned ? '#44ff44' : (canBuy ? '#ffffff' : '#888888');
 
             const btn = this.add.text(cx, yOff, label, {
-                fontSize: '11px', fill: color, fontFamily: 'monospace'
+                fontSize: '11px', fill: color, fontFamily: 'monospace',
+                stroke: '#000000', strokeThickness: 1
             }).setOrigin(0.5).setDepth(101);
 
             if (canBuy) {
@@ -219,7 +234,7 @@ class TitleScene extends Phaser.Scene {
                         this._showUpgradeShop();
                     }
                 });
-                btn.on('pointerover', () => btn.setFill('#ffffff'));
+                btn.on('pointerover', () => btn.setFill('#ffff00'));
                 btn.on('pointerout', () => btn.setFill(color));
             }
             uiGroup.push(btn);

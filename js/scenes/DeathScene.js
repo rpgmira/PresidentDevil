@@ -24,7 +24,9 @@ class DeathScene extends Phaser.Scene {
         // Death title
         this.add.text(cx, cy - 120, 'YOU DIED', {
             fontSize: '48px',
-            fill: '#aa0000',
+            fill: '#ff3333',
+            stroke: '#000000',
+            strokeThickness: 3,
             fontFamily: 'monospace',
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -40,7 +42,9 @@ class DeathScene extends Phaser.Scene {
         const flavor = flavorTexts[Phaser.Math.Between(0, flavorTexts.length - 1)];
         this.add.text(cx, cy - 70, flavor, {
             fontSize: '12px',
-            fill: '#664444',
+            fill: '#cc8888',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace',
             fontStyle: 'italic'
         }).setOrigin(0.5);
@@ -59,7 +63,9 @@ class DeathScene extends Phaser.Scene {
 
         this.add.text(cx, cy + 10, statsText, {
             fontSize: '12px',
-            fill: '#888',
+            fill: '#dddddd',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace',
             lineSpacing: 6
         }).setOrigin(0.5);
@@ -67,14 +73,18 @@ class DeathScene extends Phaser.Scene {
         // Currency earned
         this.add.text(cx, cy + 95, `Red Ink earned: +${metaResult.earned}  (Total: ${metaResult.total})`, {
             fontSize: '11px',
-            fill: '#cc6644',
+            fill: '#ffaa77',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace'
         }).setOrigin(0.5);
 
         // Retry prompt
-        const retryText = this.add.text(cx, cy + 130, '[ PRESS ANY KEY TO TRY AGAIN ]', {
+        const retryText = this.add.text(cx, cy + 130, '[ PRESS ANY KEY TO RESTART ]', {
             fontSize: '14px',
-            fill: '#cc4444',
+            fill: '#ffff44',
+            stroke: '#000000',
+            strokeThickness: 2,
             fontFamily: 'monospace'
         }).setOrigin(0.5);
 
@@ -88,14 +98,14 @@ class DeathScene extends Phaser.Scene {
 
         // Delay input to prevent accidental restart
         let canRetry = false;
-        const returnToTitle = () => {
+        const restartGame = () => {
             if (!canRetry || this._restarting) return;
             this._restarting = true;
-            this.scene.start('TitleScene');
+            this.scene.start('GameScene');
         };
 
-        this.input.keyboard.on('keydown', returnToTitle);
-        this.input.on('pointerdown', returnToTitle);
+        this.input.keyboard.on('keydown', restartGame);
+        this.input.on('pointerdown', restartGame);
 
         const enableRetryTimer = this.time.delayedCall(1000, () => {
             canRetry = true;
@@ -105,8 +115,8 @@ class DeathScene extends Phaser.Scene {
             if (enableRetryTimer && !enableRetryTimer.hasDispatched) {
                 enableRetryTimer.remove(false);
             }
-            this.input.keyboard.off('keydown', returnToTitle);
-            this.input.off('pointerdown', returnToTitle);
+            this.input.keyboard.off('keydown', restartGame);
+            this.input.off('pointerdown', restartGame);
         });
     }
 

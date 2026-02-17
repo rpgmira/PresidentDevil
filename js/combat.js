@@ -76,6 +76,9 @@ class CombatSystem {
             player.facing = Math.sin(angle) > 0 ? 'down' : 'up';
         }
 
+        // Show attack effect in the direction of attack
+        player._showAttackEffect(player.facing, 400);
+
         // Deal damage (with passive melee multiplier)
         const weapon = player.meleeWeapon;
         const meleeDmg = Math.floor(weapon.damage * player.getPassiveMult('meleeDamage'));

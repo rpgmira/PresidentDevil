@@ -21,6 +21,15 @@ const TILE_SPRITE_GEN = {
             // Walls
             tile_wall:           this._drawWall.bind(this),
             tile_wall_ritual:    this._drawWallRitual.bind(this),
+            // Decorative Office Walls (non-interactive office rooms)
+            tile_wall_office_desk:    this._drawOfficeWallDesk.bind(this),
+            tile_wall_office_meeting: this._drawOfficeWallMeeting.bind(this),
+            tile_wall_office_cubicle: this._drawOfficeWallCubicle.bind(this),
+            tile_wall_office_storage: this._drawOfficeWallStorage.bind(this),
+            tile_wall_office_window:  this._drawOfficeWallWindow.bind(this),
+            tile_wall_office_break:   this._drawOfficeWallBreak.bind(this),
+            tile_wall_office_server:  this._drawOfficeWallServer.bind(this),
+            tile_wall_office_copy:    this._drawOfficeWallCopy.bind(this),
             // Floors
             tile_floor_office:   this._drawFloorOffice.bind(this),
             tile_floor_corridor: this._drawFloorCorridor.bind(this),
@@ -30,6 +39,30 @@ const TILE_SPRITE_GEN = {
             tile_door_locked:    this._drawDoorLocked.bind(this),
             tile_door_sealed:    this._drawDoorSealed.bind(this),
             tile_door_shortcut:  this._drawDoorShortcut.bind(this),
+            // Office Furniture
+            tile_desk:           this._drawDesk.bind(this),
+            tile_chair:          this._drawChair.bind(this),
+            tile_filing_cabinet: this._drawFilingCabinet.bind(this),
+            tile_bookshelf:      this._drawBookshelf.bind(this),
+            tile_conference_table: this._drawConferenceTable.bind(this),
+            tile_water_cooler:   this._drawWaterCooler.bind(this),
+            tile_copy_machine:   this._drawCopyMachine.bind(this),
+            tile_computer_desk:  this._drawComputerDesk.bind(this),
+            // Decorative Elements
+            tile_potted_plant:   this._drawPottedPlant.bind(this),
+            tile_poster_president: this._drawPresidentPoster.bind(this),
+            tile_papers_scattered: this._drawScatteredPapers.bind(this),
+            tile_coffee_machine: this._drawCoffeeMachine.bind(this),
+            tile_trash_bin:      this._drawTrashBin.bind(this),
+            // Additional Office Elements  
+            tile_whiteboard:     this._drawWhiteboard.bind(this),
+            tile_office_phone:   this._drawOfficePhone.bind(this),
+            tile_lamp:           this._drawDeskLamp.bind(this),
+            tile_safe:           this._drawSafe.bind(this),
+            tile_vending_machine: this._drawVendingMachine.bind(this),
+            tile_fire_extinguisher: this._drawFireExtinguisher.bind(this),
+            tile_photocopier_papers: this._drawPhotocopierPapers.bind(this),
+            tile_broken_computer: this._drawBrokenComputer.bind(this),
         };
 
         for (const [texKey, drawFn] of Object.entries(tiles)) {
@@ -72,7 +105,18 @@ const TILE_SPRITE_GEN = {
         if (tile.type === 'wall') {
             const room = getAdjacentRoom ? getAdjacentRoom(x, y) : null;
             if (room && room.type === 'boss') return 'tile_wall_ritual';
-            return 'tile_wall';
+            
+            // Generate varied office wall textures based on position
+            const seed = (x * 73 + y * 37) % 100; // Simple pseudo-random based on position
+            if (seed < 15) return 'tile_wall_office_desk';
+            if (seed < 30) return 'tile_wall_office_meeting';
+            if (seed < 45) return 'tile_wall_office_cubicle';
+            if (seed < 55) return 'tile_wall_office_storage';
+            if (seed < 65) return 'tile_wall_office_window';
+            if (seed < 75) return 'tile_wall_office_break';
+            if (seed < 85) return 'tile_wall_office_server';
+            if (seed < 95) return 'tile_wall_office_copy';
+            return 'tile_wall'; // fallback to regular wall
         }
         if (tile.type === 'floor') {
             if (tile.room && tile.room.type === 'boss') return 'tile_floor_boss';
@@ -192,6 +236,316 @@ const TILE_SPRITE_GEN = {
         // Highlights
         px(1, 1, '#9a3030'); px(9, 1, '#9a3030');
         px(5, 5, '#9a3030');
+    },
+
+    // ═══════════════════════════════════════════
+    // DECORATIVE OFFICE WALLS (TOP-DOWN OFFICE ROOMS)
+    // ═══════════════════════════════════════════
+
+    _drawOfficeWallDesk(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Room floor background
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Room walls/border (darker)
+        r(0, 0, 16, 1, '#4A4A6A'); // top
+        r(0, 15, 16, 1, '#4A4A6A'); // bottom
+        r(0, 0, 1, 16, '#4A4A6A'); // left
+        r(15, 0, 1, 16, '#4A4A6A'); // right
+        
+        // Desk (brown)
+        r(3, 8, 6, 4, '#8B4513');
+        r(4, 9, 4, 2, '#A0522D');
+        
+        // Chair
+        r(6, 12, 3, 2, '#2F2F2F');
+        r(7, 13, 1, 1, '#404040');
+        
+        // Computer monitor
+        r(5, 6, 3, 2, '#1C1C1C');
+        r(6, 7, 1, 1, '#000080'); // blue screen
+        
+        // Papers on desk
+        r(4, 10, 2, 1, '#FFFFFF');
+        px(8, 9, '#C0C0C0'); // stapler
+        
+        // Window
+        r(1, 2, 2, 4, '#87CEEB');
+        px(1, 4, '#FFFFFF'); px(2, 4, '#FFFFFF'); // window frames
+    },
+
+    _drawOfficeWallMeeting(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Room floor 
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Conference table (oval-ish)
+        r(4, 6, 8, 4, '#8B4513');
+        r(5, 5, 6, 6, '#A0522D');
+        
+        // Chairs around table
+        r(3, 7, 2, 2, '#2F2F2F'); // left chair
+        r(11, 7, 2, 2, '#2F2F2F'); // right chair
+        r(6, 4, 2, 1, '#2F2F2F'); // top chair
+        r(6, 11, 2, 1, '#2F2F2F'); // bottom chair
+        
+        // Whiteboard
+        r(1, 1, 6, 3, '#F5F5F5');
+        px(2, 2, '#0000FF'); px(3, 2, '#0000FF'); // writing
+        px(2, 3, '#FF0000'); // bullet point
+        
+        // Projector screen
+        r(10, 1, 5, 3, '#E0E0E0');
+        px(11, 2, '#000000'); // text
+    },
+
+    _drawOfficeWallCubicle(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Outer walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Cubicle dividers (creating 4 small cubicles)
+        r(8, 1, 1, 14, '#808080'); // vertical divider
+        r(1, 8, 14, 1, '#808080'); // horizontal divider
+        
+        // Desks in each cubicle
+        r(2, 3, 4, 2, '#8B4513'); // top-left desk
+        r(10, 3, 4, 2, '#8B4513'); // top-right desk
+        r(2, 10, 4, 2, '#8B4513'); // bottom-left desk
+        r(10, 10, 4, 2, '#8B4513'); // bottom-right desk
+        
+        // Computers
+        r(3, 2, 2, 1, '#1C1C1C');
+        r(11, 2, 2, 1, '#1C1C1C');
+        r(3, 9, 2, 1, '#1C1C1C');
+        r(11, 9, 2, 1, '#1C1C1C');
+        
+        // Chairs
+        r(4, 6, 1, 1, '#2F2F2F');
+        r(12, 6, 1, 1, '#2F2F2F');
+        r(4, 13, 1, 1, '#2F2F2F');
+        r(12, 13, 1, 1, '#2F2F2F');
+    },
+
+    _drawOfficeWallStorage(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Filing cabinets along walls
+        r(1, 2, 3, 6, '#708090'); // left wall cabinets
+        r(1, 9, 3, 6, '#708090');
+        r(12, 2, 3, 6, '#708090'); // right wall cabinets
+        r(12, 9, 3, 6, '#708090');
+        
+        // Boxes/storage containers
+        r(5, 3, 3, 3, '#8B4513'); // cardboard boxes
+        r(8, 3, 3, 3, '#654321');
+        r(6, 7, 3, 3, '#8B4513');
+        r(5, 11, 4, 3, '#654321');
+        
+        // Shelving unit
+        r(6, 1, 4, 1, '#808080'); // shelf
+        px(7, 2, '#FFFFFF'); px(8, 2, '#FFFFFF'); // items on shelf
+        
+        // Ladder
+        px(11, 4, '#C0C0C0'); px(11, 6, '#C0C0C0');
+        px(11, 5, '#C0C0C0'); // ladder rungs
+    },
+
+    _drawOfficeWallWindow(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Walls (with large window)
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Large window (top wall)
+        r(3, 0, 10, 4, '#87CEEB'); // sky blue window
+        r(3, 0, 10, 1, '#5F9EA0'); // window frame top
+        r(3, 3, 10, 1, '#5F9EA0'); // window frame bottom
+        r(3, 0, 1, 4, '#5F9EA0'); // left frame
+        r(12, 0, 1, 4, '#5F9EA0'); // right frame
+        r(7, 0, 2, 4, '#5F9EA0'); // center divider
+        
+        // Window blinds (partially closed)
+        px(4, 1, '#F5F5F5'); px(6, 1, '#F5F5F5'); px(9, 1, '#F5F5F5');
+        px(4, 2, '#E0E0E0'); px(6, 2, '#E0E0E0'); px(9, 2, '#E0E0E0');
+        
+        // Simple furniture for the office
+        r(2, 8, 5, 3, '#8B4513'); // desk
+        r(8, 6, 2, 2, '#2F2F2F'); // chair
+        
+        // Plant by window
+        r(13, 5, 2, 3, '#8B4513'); // pot
+        px(14, 4, '#228B22'); px(14, 3, '#32CD32'); // plant leaves
+        
+        // Sunlight effect
+        px(5, 6, '#FFFACD'); px(8, 8, '#FFFACD'); // sunbeam spots
+    },
+
+    _drawOfficeWallBreak(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Coffee machine
+        r(1, 2, 3, 4, '#2F2F2F');
+        r(2, 3, 1, 2, '#8B4513'); // coffee pot
+        px(2, 1, '#FF4500'); // power light
+        
+        // Vending machine
+        r(12, 1, 3, 6, '#FF4500');
+        px(13, 3, '#FFD700'); px(14, 3, '#32CD32'); // snacks
+        px(13, 4, '#FF0000'); px(14, 4, '#9370DB');
+        
+        // Table and chairs
+        r(5, 8, 6, 3, '#8B4513'); // round table
+        r(3, 11, 2, 2, '#2F2F2F'); // chair 1
+        r(11, 11, 2, 2, '#2F2F2F'); // chair 2
+        r(6, 6, 2, 1, '#2F2F2F'); // chair 3
+        
+        // Refrigerator
+        r(1, 8, 2, 6, '#E0E0E0');
+        px(1, 10, '#C0C0C0'); // handle
+        px(2, 9, '#00FF00'); // power light
+        
+        // Microwave on counter
+        r(9, 3, 3, 2, '#1C1C1C');
+        px(10, 4, '#FFFFFF'); // display
+        
+        // Sink
+        r(5, 1, 4, 3, '#C0C0C0');
+        px(7, 2, '#4682B4'); // water
+    },
+
+    _drawOfficeWallServer(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor (darker, tech room)
+        r(0, 0, 16, 16, '#5A5A7A');
+        
+        // Walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Server racks
+        r(1, 1, 3, 14, '#1C1C1C'); // left rack
+        r(5, 1, 3, 14, '#1C1C1C'); // center rack
+        r(9, 1, 3, 14, '#1C1C1C'); // right rack
+        
+        // LED lights on servers (blinking indicators)
+        px(2, 3, '#00FF00'); px(3, 3, '#FF0000'); px(2, 5, '#0000FF');
+        px(6, 4, '#FFFF00'); px(7, 4, '#00FF00'); px(6, 6, '#FF0000');
+        px(10, 2, '#00FF00'); px(11, 2, '#00FF00'); px(10, 8, '#FF0000');
+        px(2, 8, '#0000FF'); px(3, 10, '#FFFF00'); px(2, 12, '#00FF00');
+        px(6, 9, '#FF0000'); px(7, 11, '#00FF00'); px(6, 13, '#0000FF');
+        px(10, 5, '#FFFF00'); px(11, 7, '#FF0000'); px(10, 11, '#00FF00');
+        
+        // Cooling vents
+        px(2, 1, '#666666'); px(3, 1, '#666666');
+        px(6, 1, '#666666'); px(7, 1, '#666666');
+        px(10, 1, '#666666'); px(11, 1, '#666666');
+        
+        // Cable management
+        px(4, 3, '#000000'); px(4, 7, '#000000'); px(4, 11, '#000000');
+        px(8, 4, '#000000'); px(8, 8, '#000000'); px(8, 12, '#000000');
+        
+        // Workstation
+        r(13, 8, 2, 3, '#8B4513'); // small desk
+        r(13, 6, 2, 2, '#1C1C1C'); // monitor
+        px(14, 7, '#00FF00'); // screen glow
+        r(14, 11, 1, 1, '#2F2F2F'); // chair
+    },
+
+    _drawOfficeWallCopy(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Floor
+        r(0, 0, 16, 16, '#6B6B8D');
+        
+        // Walls
+        r(0, 0, 16, 1, '#4A4A6A');
+        r(0, 15, 16, 1, '#4A4A6A');
+        r(0, 0, 1, 16, '#4A4A6A');
+        r(15, 0, 1, 16, '#4A4A6A');
+        
+        // Copy machine (large)
+        r(2, 2, 6, 8, '#F5F5F5');
+        r(3, 3, 4, 6, '#E0E0E0');
+        px(6, 4, '#00FF00'); // power light
+        px(7, 4, '#FF0000'); // error light
+        px(5, 5, '#0000FF'); // display
+        
+        // Scanner lid (open)
+        r(3, 1, 4, 2, '#D3D3D3');
+        
+        // Paper trays
+        r(1, 6, 2, 3, '#FFFFFF'); // input tray
+        r(8, 8, 2, 3, '#FFFFFF'); // output tray
+        
+        // Paper mess (jammed/scattered)
+        r(9, 11, 3, 2, '#F0F0F0'); // paper stack on floor
+        px(10, 12, '#E0E0E0'); // crumpled paper
+        r(5, 11, 2, 3, '#FFFFFF'); // more papers
+        px(6, 13, '#000000'); // ink stain
+        
+        // Supply shelving
+        r(11, 1, 4, 4, '#808080'); // shelf
+        px(12, 2, '#FFFFFF'); px(13, 2, '#FFFFFF'); // paper supplies
+        px(12, 3, '#8B4513'); px(13, 3, '#654321'); // toner boxes
+        
+        // Tools and maintenance
+        r(13, 6, 2, 2, '#654321'); // toolbox
+        px(14, 7, '#C0C0C0'); // wrench
+        
+        // Trash bin (overflowing)
+        r(1, 12, 2, 3, '#2F2F2F');
+        px(2, 11, '#FFFFFF'); // overflowing paper
     },
 
     // ═══════════════════════════════════════════
@@ -480,4 +834,650 @@ const TILE_SPRITE_GEN = {
         r(0, 0, 1, 16, '#112233');
         r(15, 0, 1, 16, '#112233');
     },
+
+    // ═══════════════════════════════════════════
+    // OFFICE FURNITURE
+    // ═══════════════════════════════════════════
+
+    _drawDesk(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Desk surface (wood grain)
+        r(1, 8, 14, 7, '#8B4513');
+        r(2, 9, 12, 6, '#A0522D');
+        
+        // Wood grain lines
+        px(3, 10, '#654321'); px(7, 10, '#654321'); px(11, 10, '#654321');
+        px(4, 12, '#654321'); px(9, 12, '#654321'); px(13, 12, '#654321');
+        
+        // Desk legs
+        r(2, 12, 2, 3, '#654321');
+        r(12, 12, 2, 3, '#654321');
+        
+        // Papers on desk
+        r(3, 9, 3, 2, '#FFFFFF');
+        r(10, 9, 2, 3, '#F5F5F5');
+        
+        // Pen
+        px(6, 11, '#1E90FF');
+        px(7, 11, '#000080');
+        
+        // Coffee stain
+        px(9, 10, '#8B4513');
+        px(10, 10, '#A0522D');
+    },
+
+    _drawChair(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Chair back
+        r(5, 2, 6, 8, '#2F2F2F');
+        r(6, 3, 4, 6, '#404040');
+        
+        // Chair seat
+        r(4, 8, 8, 4, '#2F2F2F');
+        r(5, 9, 6, 2, '#404040');
+        
+        // Chair base (swivel)
+        r(7, 12, 2, 2, '#555555');
+        
+        // Wheels
+        px(5, 14, '#666666'); px(6, 14, '#666666');
+        px(9, 14, '#666666'); px(10, 14, '#666666');
+        
+        // Armrests
+        r(4, 6, 1, 3, '#333333');
+        r(11, 6, 1, 3, '#333333');
+    },
+
+    _drawFilingCabinet(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Cabinet body
+        r(3, 4, 10, 11, '#708090');
+        r(4, 5, 8, 9, '#778899');
+        
+        // Drawer dividers
+        r(4, 7, 8, 1, '#2F2F2F');
+        r(4, 10, 8, 1, '#2F2F2F');
+        r(4, 13, 8, 1, '#2F2F2F');
+        
+        // Drawer handles
+        px(11, 6, '#C0C0C0'); px(11, 9, '#C0C0C0');
+        px(11, 12, '#C0C0C0'); px(11, 15, '#C0C0C0');
+        
+        // Labels on drawers
+        r(5, 6, 2, 1, '#FFFFFF'); r(5, 9, 2, 1, '#FFFFFF');
+        r(5, 12, 2, 1, '#FFFFFF');
+        
+        // Lock
+        px(10, 6, '#FFD700');
+    },
+
+    _drawBookshelf(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Shelf frame
+        r(2, 2, 12, 13, '#8B4513');
+        r(3, 3, 10, 11, '#A0522D');
+        
+        // Shelf dividers
+        r(3, 6, 10, 1, '#654321');
+        r(3, 10, 10, 1, '#654321');
+        
+        // Books on top shelf
+        r(4, 4, 1, 2, '#800080'); r(5, 4, 1, 2, '#008000');
+        r(6, 4, 1, 2, '#FF4500'); r(7, 4, 1, 2, '#4169E1');
+        r(8, 4, 1, 2, '#DC143C'); r(9, 4, 1, 2, '#228B22');
+        
+        // Books on middle shelf
+        r(4, 7, 1, 2, '#B8860B'); r(5, 7, 1, 2, '#9932CC');
+        r(6, 7, 1, 2, '#FF6347'); r(8, 7, 1, 2, '#20B2AA');
+        r(9, 7, 1, 2, '#CD853F');
+        
+        // Books on bottom shelf
+        r(4, 11, 1, 2, '#2E8B57'); r(5, 11, 1, 2, '#8B0000');
+        r(7, 11, 1, 2, '#000080'); r(8, 11, 1, 2, '#8B008B');
+        
+        // Binder
+        r(10, 11, 2, 2, '#000000');
+        px(11, 12, '#C0C0C0');
+    },
+
+    _drawConferenceTable(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Table surface (large oval)
+        r(2, 6, 12, 8, '#8B4513');
+        r(3, 5, 10, 10, '#A0522D');
+        r(4, 4, 8, 12, '#A0522D');
+        
+        // Wood grain
+        px(5, 7, '#654321'); px(8, 7, '#654321'); px(11, 7, '#654321');
+        px(6, 10, '#654321'); px(9, 10, '#654321'); px(12, 10, '#654321');
+        
+        // Table legs (multiple)
+        r(3, 13, 1, 2, '#654321'); r(6, 13, 1, 2, '#654321');
+        r(9, 13, 1, 2, '#654321'); r(12, 13, 1, 2, '#654321');
+        
+        // Documents on table
+        r(5, 8, 2, 3, '#FFFFFF');
+        r(8, 7, 3, 2, '#F5F5F5');
+        
+        // Coffee cups
+        px(7, 6, '#8B4513'); px(10, 9, '#654321');
+        
+        // Pen
+        px(6, 9, '#1E90FF');
+    },
+
+    _drawWaterCooler(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Base cabinet
+        r(5, 10, 6, 5, '#2F2F2F');
+        r(6, 11, 4, 3, '#404040');
+        
+        // Water jug on top
+        r(6, 4, 4, 6, '#87CEEB');
+        r(7, 5, 2, 4, '#ADD8E6');
+        
+        // Water level
+        r(7, 7, 2, 2, '#4682B4');
+        
+        // Dispenser spouts
+        px(5, 9, '#C0C0C0'); px(10, 9, '#C0C0C0');
+        
+        // Cups dispenser
+        r(4, 8, 2, 2, '#FFFFFF');
+        px(4, 9, '#F0F0F0');
+        
+        // Little drip tray
+        r(5, 9, 6, 1, '#808080');
+        
+        // Brand label
+        r(7, 6, 2, 1, '#FFFFFF');
+    },
+
+    _drawCopyMachine(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Main body
+        r(2, 6, 12, 9, '#F5F5F5');
+        r(3, 7, 10, 7, '#E0E0E0');
+        
+        // Scanner lid
+        r(3, 3, 10, 4, '#D3D3D3');
+        r(4, 4, 8, 2, '#C0C0C0');
+        
+        // Control panel
+        r(10, 5, 3, 2, '#2F2F2F');
+        
+        // Buttons
+        px(11, 6, '#00FF00'); px(12, 6, '#FF0000');
+        
+        // Paper tray
+        r(2, 8, 2, 4, '#FFFFFF');
+        px(2, 9, '#F0F0F0'); px(2, 10, '#F0F0F0');
+        
+        // Output tray
+        r(12, 10, 2, 3, '#FFFFFF');
+        
+        // Brand logo
+        r(5, 8, 3, 1, '#1E90FF');
+        
+        // Paper jam indicator
+        px(11, 5, '#FFD700');
+    },
+
+    _drawComputerDesk(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Desk base
+        r(1, 8, 14, 7, '#8B4513');
+        r(2, 9, 12, 6, '#A0522D');
+        
+        // Monitor
+        r(5, 3, 6, 5, '#2F2F2F');
+        r(6, 4, 4, 3, '#000080'); // blue screen
+        px(7, 5, '#FFFFFF'); px(8, 5, '#FFFFFF'); // cursor
+        
+        // Monitor stand
+        r(7, 7, 2, 2, '#404040');
+        
+        // Keyboard
+        r(4, 10, 8, 3, '#F5F5F5');
+        px(5, 11, '#2F2F2F'); px(6, 11, '#2F2F2F'); px(7, 11, '#2F2F2F');
+        px(8, 11, '#2F2F2F'); px(9, 11, '#2F2F2F'); px(10, 11, '#2F2F2F');
+        
+        // Mouse
+        r(12, 10, 2, 2, '#C0C0C0');
+        px(13, 11, '#FF0000'); // red light
+        
+        // Speakers
+        r(2, 5, 2, 3, '#1C1C1C');
+        r(12, 5, 2, 3, '#1C1C1C');
+        px(3, 6, '#404040'); px(13, 6, '#404040'); // speaker grills
+        
+        // Cables
+        px(8, 8, '#000000'); px(9, 9, '#000000');
+    },
+
+    // ═══════════════════════════════════════════
+    // DECORATIVE ELEMENTS
+    // ═══════════════════════════════════════════
+
+    _drawPottedPlant(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Pot
+        r(5, 11, 6, 4, '#8B4513');
+        r(6, 12, 4, 2, '#A0522D');
+        
+        // Soil
+        r(6, 11, 4, 2, '#654321');
+        
+        // Plant stem
+        px(8, 10, '#228B22'); px(8, 9, '#228B22');
+        px(8, 8, '#228B22');
+        
+        // Leaves
+        px(7, 7, '#32CD32'); px(9, 7, '#32CD32');
+        px(6, 8, '#228B22'); px(10, 8, '#228B22');
+        px(7, 6, '#228B22'); px(8, 5, '#32CD32'); px(9, 6, '#228B22');
+        px(6, 9, '#32CD32'); px(10, 9, '#32CD32');
+        
+        // Small flowers
+        px(7, 5, '#FF69B4'); px(9, 7, '#FFB6C1');
+        
+        // Pot rim
+        r(5, 11, 6, 1, '#654321');
+    },
+
+    _drawPresidentPoster(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Poster background
+        r(2, 2, 12, 12, '#DC143C');
+        r(3, 3, 10, 10, '#B22222');
+        
+        // Frame
+        r(2, 2, 12, 1, '#2F2F2F');
+        r(2, 13, 12, 1, '#2F2F2F');
+        r(2, 2, 1, 12, '#2F2F2F');
+        r(13, 2, 1, 12, '#2F2F2F');
+        
+        // Presidential silhouette (devil)
+        r(6, 5, 4, 6, '#000000'); // body
+        r(7, 4, 2, 2, '#000000'); // head
+        
+        // Devil horns
+        px(6, 4, '#8B0000'); px(9, 4, '#8B0000');
+        px(6, 3, '#8B0000'); px(9, 3, '#8B0000');
+        
+        // Glowing red eyes
+        px(7, 5, '#FF0000'); px(8, 5, '#FF0000');
+        
+        // Text area (simplified)
+        r(4, 11, 8, 2, '#FFFFFF');
+        px(5, 12, '#000000'); px(6, 12, '#000000'); // "VOTE"
+        px(10, 12, '#000000'); px(11, 12, '#000000');
+        
+        // Stars decoration
+        px(4, 4, '#FFD700'); px(11, 4, '#FFD700');
+        px(4, 9, '#FFD700'); px(11, 9, '#FFD700');
+    },
+
+    _drawScatteredPapers(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Paper 1 (crumpled)
+        r(2, 3, 4, 3, '#F5F5F5');
+        px(3, 4, '#E0E0E0'); px(4, 5, '#E0E0E0');
+        px(2, 5, '#D3D3D3'); // shadow
+        
+        // Paper 2 (flat)
+        r(7, 6, 3, 4, '#FFFFFF');
+        px(8, 7, '#000000'); px(9, 7, '#000000'); // text lines
+        px(8, 8, '#000000'); px(7, 9, '#000000');
+        
+        // Paper 3 (torn corner)
+        r(10, 2, 4, 3, '#F0F0F0');
+        px(13, 2, '#FFFFFF'); // missing corner
+        px(11, 3, '#000000'); // text
+        
+        // Paper 4 (small note)
+        r(3, 9, 2, 3, '#FFFF99'); // yellow sticky note
+        px(3, 10, '#FF0000'); // urgent text
+        
+        // Paper 5 (stamped document)
+        r(8, 11, 4, 3, '#FFFFFF');
+        px(10, 12, '#FF0000'); px(11, 12, '#FF0000'); // red stamp
+        
+        // Coffee stain
+        px(9, 8, '#8B4513'); px(10, 8, '#8B4513');
+        
+        // Paperclip
+        px(12, 7, '#C0C0C0');
+    },
+
+    _drawCoffeeMachine(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Machine body
+        r(4, 4, 8, 10, '#2F2F2F');
+        r(5, 5, 6, 8, '#404040');
+        
+        // Water reservoir (clear)
+        r(9, 6, 2, 4, '#87CEEB');
+        r(10, 7, 1, 2, '#4682B4'); // water level
+        
+        // Coffee pot
+        r(5, 10, 4, 3, '#1C1C1C');
+        r(6, 11, 2, 1, '#8B4513'); // coffee
+        
+        // Handle
+        px(4, 11, '#2F2F2F'); px(4, 12, '#2F2F2F');
+        
+        // Hot plate
+        r(5, 13, 4, 1, '#FF4500');
+        px(6, 13, '#FF6347'); px(8, 13, '#FF6347'); // heating elements
+        
+        // Control panel
+        r(6, 6, 2, 2, '#1C1C1C');
+        px(6, 6, '#00FF00'); // power light
+        px(7, 7, '#FF0000'); // brew button
+        
+        // Steam
+        px(7, 4, '#F5F5F5'); px(8, 3, '#F5F5F5');
+        
+        // Brand label
+        r(6, 8, 2, 1, '#FFFFFF');
+    },
+
+    _drawTrashBin(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Bin body
+        r(5, 8, 6, 7, '#2F2F2F');
+        r(6, 9, 4, 5, '#404040');
+        
+        // Rim
+        r(4, 7, 8, 2, '#555555');
+        r(5, 8, 6, 1, '#666666');
+        
+        // Vertical ridges
+        px(6, 10, '#2F2F2F'); px(6, 12, '#2F2F2F');
+        px(9, 10, '#2F2F2F'); px(9, 12, '#2F2F2F');
+        
+        // Trash inside
+        px(7, 10, '#FFFFFF'); // paper
+        px(8, 11, '#8B4513'); // banana peel
+        px(7, 12, '#C0C0C0'); // can
+        px(8, 9, '#FF0000'); // wrapper
+        
+        // Base
+        r(5, 14, 6, 1, '#1C1C1C');
+        
+        // Dent
+        px(8, 13, '#1C1C1C');
+    },
+
+    // ═══════════════════════════════════════════
+    // ADDITIONAL OFFICE ELEMENTS
+    // ═══════════════════════════════════════════
+
+    _drawWhiteboard(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Board frame 
+        r(2, 2, 12, 10, '#2F2F2F');
+        r(3, 3, 10, 8, '#F5F5F5');
+        
+        // Writing on board (meeting notes)
+        px(5, 4, '#0000FF'); px(6, 4, '#0000FF'); px(7, 4, '#0000FF'); // "PLAN"
+        px(5, 6, '#FF0000'); px(6, 6, '#FF0000'); // bullet points
+        px(8, 6, '#000000'); px(9, 6, '#000000'); px(10, 6, '#000000');
+        px(5, 7, '#FF0000');
+        px(8, 7, '#000000'); px(9, 7, '#000000'); px(10, 7, '#000000');
+        
+        // Marker tray
+        r(3, 11, 10, 1, '#808080');
+        px(4, 11, '#FF0000'); px(6, 11, '#0000FF'); px(8, 11, '#000000'); // markers
+        
+        // Eraser marks
+        px(11, 5, '#E0E0E0'); px(12, 5, '#E0E0E0');
+        px(11, 8, '#E0E0E0'); px(12, 8, '#E0E0E0');
+    },
+
+    _drawOfficePhone(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Phone base
+        r(5, 8, 6, 6, '#1C1C1C');
+        r(6, 9, 4, 4, '#2F2F2F');
+        
+        // Handset
+        r(4, 5, 8, 3, '#1C1C1C');
+        r(5, 6, 6, 1, '#2F2F2F');
+        
+        // Cord (connecting handset to base)
+        px(8, 8, '#000000'); 
+        px(7, 9, '#000000'); px(9, 9, '#000000');
+        px(8, 10, '#000000');
+        
+        // Number pad
+        px(7, 10, '#404040'); px(8, 10, '#404040'); px(9, 10, '#404040');
+        px(7, 11, '#404040'); px(8, 11, '#404040'); px(9, 11, '#404040');
+        px(7, 12, '#404040'); px(8, 12, '#404040'); px(9, 12, '#404040');
+        
+        // LED light (message waiting)
+        px(6, 10, '#FF0000');
+    },
+
+    _drawDeskLamp(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Lamp base
+        r(6, 11, 4, 4, '#2F2F2F');
+        r(7, 12, 2, 2, '#404040');
+        
+        // Lamp arm
+        px(8, 11, '#555555');
+        px(9, 10, '#555555'); px(9, 9, '#555555');
+        px(10, 8, '#555555'); px(11, 7, '#555555');
+        
+        // Lamp head
+        r(10, 4, 4, 4, '#666666');
+        r(11, 5, 2, 2, '#FFFF99'); // light glow
+        
+        // Power cord
+        px(6, 14, '#000000'); px(5, 15, '#000000');
+        
+        // Light beam effect
+        px(12, 8, '#FFFFCC'); px(13, 9, '#FFFFCC');
+        px(12, 10, '#FFFFCC'); px(13, 11, '#FFFFCC');
+    },
+
+    _drawSafe(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Safe body
+        r(4, 6, 8, 9, '#2F2F2F');
+        r(5, 7, 6, 7, '#404040');
+        
+        // Door
+        r(5, 7, 6, 6, '#555555');
+        
+        // Combination dial
+        r(7, 9, 2, 2, '#C0C0C0');
+        px(8, 10, '#1C1C1C'); // center dot
+        
+        // Handle
+        r(11, 9, 1, 2, '#C0C0C0');
+        
+        // Hinges
+        px(5, 8, '#808080'); px(5, 11, '#808080');
+        
+        // Brand plate
+        r(6, 8, 3, 1, '#FFD700');
+        
+        // Lock indicator
+        px(9, 8, '#FF0000'); // locked
+    },
+
+    _drawVendingMachine(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Machine body
+        r(3, 1, 10, 14, '#FF4500');
+        r(4, 2, 8, 12, '#FF6347');
+        
+        // Display window
+        r(4, 3, 8, 6, '#000000');
+        r(5, 4, 6, 4, '#1C1C1C');
+        
+        // Snack rows visible
+        px(6, 5, '#FFD700'); px(8, 5, '#8B4513'); px(10, 5, '#FF69B4'); // row 1
+        px(6, 6, '#32CD32'); px(8, 6, '#FF0000'); px(10, 6, '#9370DB'); // row 2
+        px(6, 7, '#FFA500'); px(8, 7, '#00CED1'); px(10, 7, '#DC143C'); // row 3
+        
+        // Coin slot
+        r(11, 10, 1, 3, '#1C1C1C');
+        px(11, 11, '#C0C0C0');
+        
+        // Selection buttons
+        px(5, 10, '#FFFFFF'); px(6, 10, '#FFFFFF'); px(7, 10, '#FFFFFF');
+        px(8, 10, '#FFFFFF'); px(9, 10, '#FFFFFF'); px(10, 10, '#FFFFFF');
+        
+        // Dispenser slot
+        r(4, 12, 8, 2, '#1C1C1C');
+        
+        // "OUT OF ORDER" message
+        px(6, 11, '#FF0000'); px(7, 11, '#FF0000'); px(8, 11, '#FF0000');
+    },
+
+    _drawFireExtinguisher(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Extinguisher body
+        r(6, 6, 4, 9, '#FF0000');
+        r(7, 7, 2, 7, '#DC143C');
+        
+        // Top cap
+        r(7, 5, 2, 2, '#2F2F2F');
+        
+        // Handle
+        r(6, 5, 1, 3, '#1C1C1C');
+        r(9, 5, 1, 3, '#1C1C1C');
+        
+        // Pressure gauge
+        px(8, 8, '#FFFFFF');
+        px(8, 9, '#FFFF00');
+        
+        // Hose
+        px(6, 10, '#1C1C1C'); px(5, 11, '#1C1C1C');
+        px(4, 12, '#1C1C1C'); px(4, 13, '#1C1C1C');
+        
+        // Nozzle
+        r(3, 13, 2, 1, '#404040');
+        
+        // Mounting bracket
+        px(10, 7, '#808080'); px(10, 9, '#808080');
+        
+        // Label
+        r(7, 10, 2, 1, '#FFFFFF');
+    },
+
+    _drawPhotocopierPapers(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Paper stack 1 (tray overflow)
+        r(2, 8, 3, 4, '#FFFFFF');
+        r(2, 7, 3, 4, '#F5F5F5');
+        px(3, 9, '#E0E0E0'); px(4, 10, '#E0E0E0'); // shadow
+        
+        // Paper stack 2 (floor mess) 
+        r(6, 10, 4, 3, '#F0F0F0');
+        r(7, 9, 3, 4, '#FFFFFF');
+        px(8, 11, '#D3D3D3'); // crumple
+        
+        // Individual scattered sheets
+        r(11, 5, 2, 3, '#FFFFFF');
+        px(12, 6, '#000000'); // text line
+        
+        r(3, 3, 3, 2, '#F5F5F5');
+        px(3, 4, '#000000'); px(4, 4, '#000000'); // text
+        
+        r(9, 12, 2, 2, '#FFFFFF');
+        px(10, 13, '#FF0000'); // red marking
+        
+        // Paper jam pieces
+        r(12, 8, 2, 1, '#F0F0F0');
+        px(13, 8, '#000000'); // torn edge
+        
+        // Stapler on papers
+        r(7, 7, 3, 1, '#808080');
+        px(8, 7, '#C0C0C0'); // metal shine
+    },
+
+    _drawBrokenComputer(ctx) {
+        const r = (x, y, w, h, c) => this._rect(ctx, x, y, w, h, c);
+        const px = (x, y, c) => this._px(ctx, x, y, c);
+
+        // Monitor (cracked)
+        r(5, 3, 6, 5, '#2F2F2F');
+        r(6, 4, 4, 3, '#000000'); // black screen
+        
+        // Crack in screen
+        px(7, 4, '#404040'); px(8, 5, '#404040'); px(9, 6, '#404040');
+        px(6, 5, '#404040'); px(8, 6, '#404040');
+        
+        // Sparks/damage
+        px(6, 4, '#FFFF00'); px(9, 4, '#FF4500');
+        
+        // Monitor stand (broken)
+        r(7, 7, 2, 2, '#404040');
+        px(6, 8, '#1C1C1C'); // broken piece
+        
+        // Base/CPU unit (smoking)
+        r(2, 8, 4, 6, '#1C1C1C');
+        r(3, 9, 2, 4, '#2F2F2F');
+        
+        // Smoke coming out
+        px(4, 7, '#808080'); px(5, 6, '#A0A0A0');
+        px(3, 6, '#909090'); px(4, 5, '#B0B0B0');
+        
+        // Error lights
+        px(3, 10, '#FF0000'); px(3, 11, '#FF0000'); // red error LEDs
+        
+        // Disconnected cables
+        px(6, 9, '#000000'); px(7, 10, '#000000');
+        px(5, 11, '#000000'); px(4, 12, '#000000');
+        
+        // "OUT OF ORDER" sticky note
+        r(8, 8, 2, 1, '#FFFF99');
+        px(8, 8, '#FF0000'); // red text
+    },
+
 };

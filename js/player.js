@@ -108,6 +108,14 @@ class Player {
 
         // Drop key
         this.dropKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+
+        // Show range key
+        this.showRangeKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+        // Attack effect visualization
+        this.attackEffect = null;
+        this.attackEffectTimer = 0;
+        this.showAttackEffect = true;
     }
 
     update(delta, dungeon) {
@@ -136,12 +144,25 @@ class Player {
         if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
         if (this.rangedCooldown > 0) this.rangedCooldown -= delta;
 
+        // Attack effect timer
+        if (this.attackEffectTimer > 0) {
+            this.attackEffectTimer -= delta;
+            if (this.attackEffectTimer <= 0) {
+                this._hideAttackEffect();
+            }
+        }
+
         // Handle inventory selection
         this._handleInventoryInput();
 
         // Handle item drop
         if (Phaser.Input.Keyboard.JustDown(this.dropKey)) {
             this._dropSelectedItem();
+        }
+
+        // Handle manual attack preview
+        if (Phaser.Input.Keyboard.JustDown(this.showRangeKey)) {
+            this._showAttackPreview();
         }
 
         // Prevent getting stuck in walls
@@ -152,6 +173,9 @@ class Player {
 
         // Update animation
         this._updateAnimation();
+
+        // Update attack effect position if visible
+        this.updateAttackEffectPosition();
     }
 
     _updateAnimation() {
@@ -337,6 +361,11 @@ class Player {
                 }
                 AUDIO.playInventorySelect();
                 this.selectedSlot = slotIndex;
+                
+                // Show attack preview when selecting a melee weapon
+                if (item.weapon && item.weapon.type === 'melee' && item.durability > 0) {
+                    this._showAttackPreview();
+                }
             }
         }
 
@@ -347,6 +376,11 @@ class Player {
                 this.activeMeleeSlot = -1;
                 this.meleeWeapon = CONFIG.WEAPONS.FISTS;
             }
+        }
+        
+        // Show fists preview when selecting them
+        if (Phaser.Input.Keyboard.JustDown(this.numKeys[0])) {
+            this._showAttackPreview();
         }
     }
 
@@ -393,6 +427,10 @@ class Player {
 
     die() {
         this.alive = false;
+        
+        // Clean up attack visualization
+        this._hideAttackEffect();
+        
         AUDIO.playPlayerDeath();
         AUDIO.stopAll();
 
@@ -612,5 +650,232 @@ class Player {
             }
         }
         return null;
+    }
+
+    // ===== ATTACK EFFECT VISUALIZATION =====
+
+    _showAttackPreview() {
+        // Show attack effect in current facing direction
+        this._showAttackEffect(this.facing, 1200);
+    }
+
+    _showAttackEffect(direction, duration = 600) {
+        this._hideAttackEffect(); // Remove any existing effect first
+
+        // Create attack effect graphics
+        this.attackEffect = this.scene.add.graphics();
+        this.attackEffect.setDepth(59); // Above player but below walls
+        
+        // Get current weapon for styling
+        const weapon = this.meleeWeapon;
+        let color = 0xFFFFAA; // Light yellow for fists
+        let effectSize = CONFIG.PLAYER_MELEE_RANGE;
+        
+        if (weapon.name === 'Baseball Bat') {
+            color = 0x8B4513; // Brown
+            effectSize += 5; // Slightly longer reach
+        } else if (weapon.name === 'Knife') {
+            color = 0xC0C0C0; // Silver
+            effectSize -= 3; // Shorter but faster
+        } else if (weapon.name === 'Chainsaw') {
+            color = 0xFF4500; // Orange-red
+            effectSize += 8; // Longer reach
+        }
+
+        // Calculate attack direction and create swing effect
+        const startX = 0;
+        const startY = 0;
+        let endX = 0;
+        let endY = 0;
+        let swingAngle = 0;
+
+        switch (direction) {
+            case 'up':
+                endY = -effectSize;
+                swingAngle = -Math.PI/2;
+                break;
+            case 'down':
+                endY = effectSize;
+                swingAngle = Math.PI/2;
+                break;
+            case 'left':
+                endX = -effectSize;
+                swingAngle = Math.PI;
+                break;
+            case 'right':
+                endX = effectSize;
+                swingAngle = 0;
+                break;
+        }
+
+        // Draw the attack effect as an arc/swing
+        this._drawAttackSwing(startX, startY, endX, endY, swingAngle, color, effectSize);
+
+        // Position at player location
+        this.attackEffect.setPosition(this.sprite.x, this.sprite.y);
+
+        // Set timer and animate
+        this.attackEffectTimer = duration;
+        this._animateAttackEffect();
+    }
+
+    _drawAttackSwing(startX, startY, endX, endY, baseAngle, color, reach) {
+        const weapon = this.meleeWeapon;
+        
+        if (weapon.name === 'Chainsaw') {
+            // Chainsaw - wider, more aggressive effect
+            this._drawChainsaw(baseAngle, color, reach);
+        } else if (weapon.name === 'Baseball Bat') {
+            // Baseball bat - wide arc swing
+            this._drawBatSwing(baseAngle, color, reach);
+        } else if (weapon.name === 'Knife') {
+            // Knife - quick thrust
+            this._drawKnifeThrust(startX, startY, endX, endY, color);
+        } else {
+            // Fists - quick jab with impact burst
+            this._drawFistPunch(startX, startY, endX, endY, color);
+        }
+    }
+
+    _drawFistPunch(startX, startY, endX, endY, color) {
+        // Draw punch line with impact burst
+        this.attackEffect.lineStyle(3, color, 0.8);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(startX, startY);
+        this.attackEffect.lineTo(endX, endY);
+        this.attackEffect.strokePath();
+        
+        // Impact burst at end
+        this.attackEffect.fillStyle(color, 0.4);
+        this.attackEffect.fillCircle(endX, endY, 8);
+        
+        // Speed lines for punch effect
+        const perpX = -endY * 0.3; // Perpendicular for speed lines
+        const perpY = endX * 0.3;
+        
+        this.attackEffect.lineStyle(2, color, 0.6);
+        for (let i = 0; i < 3; i++) {
+            const offset = (i - 1) * 0.4;
+            this.attackEffect.beginPath();
+            this.attackEffect.moveTo(startX + perpX * offset, startY + perpY * offset);
+            this.attackEffect.lineTo(endX * 0.7 + perpX * offset, endY * 0.7 + perpY * offset);
+            this.attackEffect.strokePath();
+        }
+    }
+
+    _drawKnifeThrust(startX, startY, endX, endY, color) {
+        // Sharp thrust line
+        this.attackEffect.lineStyle(4, color, 0.9);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(startX, startY);
+        this.attackEffect.lineTo(endX, endY);
+        this.attackEffect.strokePath();
+        
+        // Sharp point
+        this.attackEffect.fillStyle(0xFFFFFF, 0.8);
+        this.attackEffect.fillCircle(endX, endY, 3);
+    }
+
+    _drawBatSwing(baseAngle, color, reach) {
+        // Wide arc swing
+        const swingArc = Math.PI / 3; // 60 degree swing
+        const startAngle = baseAngle - swingArc / 2;
+        const endAngle = baseAngle + swingArc / 2;
+        
+        this.attackEffect.lineStyle(6, color, 0.7);
+        this.attackEffect.beginPath();
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.strokePath();
+        
+        // Impact area
+        this.attackEffect.fillStyle(color, 0.3);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(0, 0);
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.closePath();
+        this.attackEffect.fillPath();
+    }
+
+    _drawChainsaw(baseAngle, color, reach) {
+        // Aggressive wide area with particles
+        const swingArc = Math.PI / 2; // 90 degree swing
+        const startAngle = baseAngle - swingArc / 2;
+        const endAngle = baseAngle + swingArc / 2;
+        
+        // Main cutting area
+        this.attackEffect.fillStyle(color, 0.5);
+        this.attackEffect.beginPath();
+        this.attackEffect.moveTo(0, 0);
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.closePath();
+        this.attackEffect.fillPath();
+        
+        // Cutting edge
+        this.attackEffect.lineStyle(4, 0xFFFFFF, 0.9);
+        this.attackEffect.beginPath();
+        this.attackEffect.arc(0, 0, reach, startAngle, endAngle);
+        this.attackEffect.strokePath();
+        
+        // Sparks/particles effect
+        for (let i = 0; i < 8; i++) {
+            const angle = startAngle + (endAngle - startAngle) * Math.random();
+            const sparkReach = reach + Math.random() * 10;
+            const sparkX = Math.cos(angle) * sparkReach;
+            const sparkY = Math.sin(angle) * sparkReach;
+            
+            this.attackEffect.fillStyle(0xFFFF00, 0.8);
+            this.attackEffect.fillCircle(sparkX, sparkY, 2);
+        }
+    }
+
+    _animateAttackEffect() {
+        if (!this.attackEffect) return;
+
+        // Quick flash and fade animation
+        this.attackEffect.setAlpha(0);
+        
+        this.scene.tweens.add({
+            targets: this.attackEffect,
+            alpha: 0.9,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 100,
+            ease: 'Power2',
+            yoyo: true,
+            onComplete: () => {
+                if (this.attackEffect) {
+                    this.scene.tweens.add({
+                        targets: this.attackEffect,
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        });
+    }
+
+    _hideAttackEffect() {
+        if (this.attackEffect) {
+            // Stop any tweens on the effect
+            this.scene.tweens.killTweensOf(this.attackEffect);
+            this.attackEffect.destroy();
+            this.attackEffect = null;
+        }
+        this.attackEffectTimer = 0;
+    }
+
+    updateAttackEffectPosition() {
+        if (this.attackEffect) {
+            this.attackEffect.setPosition(this.sprite.x, this.sprite.y);
+        }
+    }
+
+    // Clean up resources when player is destroyed
+    destroy() {
+        this._hideAttackEffect();
+        if (this.sprite) {
+            this.sprite.destroy();
+        }
     }
 }

@@ -20,7 +20,8 @@ class HUDScene extends Phaser.Scene {
 
         // === HEALTH ===
         this.add.text(12, H - 62, 'HP', {
-            fontSize: '13px', fill: '#cc4444', fontFamily: 'monospace', fontStyle: 'bold'
+            fontSize: '13px', fill: '#ff6666', fontFamily: 'monospace',
+            stroke: '#000000', strokeThickness: 1
         });
         this.healthBarBg = this.add.rectangle(38, H - 55, 100, 14, 0x333333).setOrigin(0, 0.5);
         this.healthBar = this.add.rectangle(38, H - 55, 100, 14, 0xff4444).setOrigin(0, 0.5);
@@ -61,11 +62,13 @@ class HUDScene extends Phaser.Scene {
             const sx = slotStartX + (i + 1) * (slotSize + slotGap);
             const bg = this.add.rectangle(sx, slotY, slotSize, slotSize, 0x222222).setStrokeStyle(1, 0x555555);
             const label = this.add.text(sx, slotY - slotSize / 2 - 10, `${i + 1}`, {
-                fontSize: '10px', fill: '#aaa', fontFamily: 'monospace'
+                fontSize: '10px', fill: '#dddddd', fontFamily: 'monospace',
+                stroke: '#000000', strokeThickness: 1
             }).setOrigin(0.5);
             const icon = this.add.sprite(sx, slotY, '__DEFAULT').setDisplaySize(slotSize - 4, slotSize - 4).setVisible(false);
             const itemText = this.add.text(sx, slotY + 8, '', {
-                fontSize: '7px', fill: '#ccc', fontFamily: 'monospace'
+                fontSize: '7px', fill: '#ffffff', fontFamily: 'monospace',
+                stroke: '#000000', strokeThickness: 1
             }).setOrigin(0.5);
 
             this.invSlots.push({ bg, label, icon, itemText, x: sx });
@@ -76,7 +79,8 @@ class HUDScene extends Phaser.Scene {
             fontSize: '12px', fill: '#88cc88', fontFamily: 'monospace'
         });
         this.rangedText = this.add.text(W - 220, H - 44, 'Ranged: None', {
-            fontSize: '12px', fill: '#cc8844', fontFamily: 'monospace'
+            fontSize: '12px', fill: '#ffddaa', fontFamily: 'monospace',
+            stroke: '#000000', strokeThickness: 1
         });
         this.durText = this.add.text(W - 220, H - 26, '', {
             fontSize: '11px', fill: '#88aaff', fontFamily: 'monospace'
@@ -98,7 +102,7 @@ class HUDScene extends Phaser.Scene {
         // === PANIC INDICATOR (top center) ===
         this.panicText = this.add.text(W / 2, 40, '', {
             fontSize: '24px', fill: '#ff2222', fontFamily: 'monospace',
-            fontStyle: 'bold', stroke: '#000', strokeThickness: 3
+            stroke: '#000', strokeThickness: 3
         }).setOrigin(0.5).setVisible(false);
 
         // === MINIMAP ===

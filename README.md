@@ -122,6 +122,7 @@ Then visit **http://localhost:8080**
 | **0** | Equip fists (default melee) |
 | **1–6** | Select inventory slot |
 | **Q** | Drop selected item |
+| **E** | Show weapon attack pattern |
 
 ## Features
 

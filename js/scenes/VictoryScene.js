@@ -39,7 +39,9 @@ class VictoryScene extends Phaser.Scene {
         const flavor = flavorTexts[Phaser.Math.Between(0, flavorTexts.length - 1)];
         this.add.text(cx, cy - 75, flavor, {
             fontSize: '12px',
-            fill: '#448844',
+            fill: '#66dd66',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace',
             fontStyle: 'italic'
         }).setOrigin(0.5);
@@ -58,7 +60,9 @@ class VictoryScene extends Phaser.Scene {
 
         this.add.text(cx, cy + 10, statsText, {
             fontSize: '12px',
-            fill: '#888',
+            fill: '#dddddd',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace',
             lineSpacing: 6
         }).setOrigin(0.5);
@@ -66,7 +70,9 @@ class VictoryScene extends Phaser.Scene {
         // Currency earned
         this.add.text(cx, cy + 95, `Red Ink earned: +${metaResult.earned}  (Total: ${metaResult.total})`, {
             fontSize: '11px',
-            fill: '#44aa44',
+            fill: '#66ff66',
+            stroke: '#000000',
+            strokeThickness: 1,
             fontFamily: 'monospace'
         }).setOrigin(0.5);
 
