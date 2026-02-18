@@ -543,7 +543,14 @@ class GameScene extends Phaser.Scene {
             // If door is open, make it semi-transparent
             if (door.open) {
                 sprite.setAlpha(0.6);
-                sprite.setTint(0x88ff88); // Green tint for open doors
+                if (typeof sprite.setTint === 'function') {
+                    sprite.setTint(0x88ff88); // Green tint for open doors (sprites)
+                } else if (typeof sprite.setFillStyle === 'function') {
+                    sprite.setFillStyle(0x88ff88); // Green fill for open doors (rectangles)
+                    if (typeof sprite.setStrokeStyle === 'function') {
+                        sprite.setStrokeStyle(2, 0xFFFFFF);
+                    }
+                }
             }
             this.doorSprites.push(sprite);
 
@@ -1265,7 +1272,16 @@ class GameScene extends Phaser.Scene {
 
     _applyDoorOpenVisual(sprite, openLabel) {
         sprite.setAlpha(0.5);
-        sprite.setTint(0x88ff88);
+        if (typeof sprite.setTint === 'function') {
+            sprite.setTint(0x88ff88);
+        } else {
+            if (typeof sprite.setFillStyle === 'function') {
+                sprite.setFillStyle(0x88ff88);
+            }
+            if (typeof sprite.setStrokeStyle === 'function') {
+                sprite.setStrokeStyle(2, 0xFFFFFF);
+            }
+        }
 
         const showDoor = CONFIG.DEBUG;
         sprite.setVisible(showDoor);
