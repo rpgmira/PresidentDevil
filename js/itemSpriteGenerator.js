@@ -17,7 +17,9 @@ const ITEM_SPRITE_GEN = {
     FH: 16,
 
     generate(scene) {
-        console.log('[ItemSpriteGen] Generating item spritesheets...');
+        if (CONFIG.DEBUG) {
+            console.log('[ItemSpriteGen] Generating item spritesheets...');
+        }
 
         const items = {
             // Weapons
@@ -59,10 +61,14 @@ const ITEM_SPRITE_GEN = {
                 scene.textures.remove(texKey);
             }
             scene.textures.addCanvas(texKey, canvas);
-            console.log(`[ItemSpriteGen] ${texKey} created`);
+            if (CONFIG.DEBUG) {
+                console.log(`[ItemSpriteGen] ${texKey} created`);
+            }
         }
 
-        console.log('[ItemSpriteGen] All item sprites generated.');
+        if (CONFIG.DEBUG) {
+            console.log('[ItemSpriteGen] All item sprites generated.');
+        }
     },
 
     // ── Helpers ──

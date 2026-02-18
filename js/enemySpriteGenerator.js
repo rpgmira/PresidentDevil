@@ -62,7 +62,9 @@ const ENEMY_SPRITE_GEN = {
     },
 
     generate(scene) {
-        console.log('[EnemySpriteGen] Generating enemy spritesheets...');
+        if (CONFIG.DEBUG) {
+            console.log('[EnemySpriteGen] Generating enemy spritesheets...');
+        }
         for (const [typeName, cfg] of Object.entries(this.TYPES)) {
             const texKey = `enemy_${typeName}`;
             const W = cfg.frameW * cfg.cols;
@@ -98,9 +100,13 @@ const ENEMY_SPRITE_GEN = {
 
             // Define animations
             this._defineAnims(scene, texKey, typeName);
-            console.log(`[EnemySpriteGen] ${typeName}: ${W}x${H} canvas, texture=${texKey}, frames registered`);
+            if (CONFIG.DEBUG) {
+                console.log(`[EnemySpriteGen] ${typeName}: ${W}x${H} canvas, texture=${texKey}, frames registered`);
+            }
         }
-        console.log('[EnemySpriteGen] All enemy spritesheets generated successfully.');
+        if (CONFIG.DEBUG) {
+            console.log('[EnemySpriteGen] All enemy spritesheets generated successfully.');
+        }
     },
 
     // ── Pixel helper ──
