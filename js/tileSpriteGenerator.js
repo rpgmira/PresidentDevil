@@ -15,7 +15,9 @@ const TILE_SPRITE_GEN = {
     FH: 16,
 
     generate(scene) {
-        console.log('[TileSpriteGen] Generating tile textures...');
+        if (CONFIG.DEBUG) {
+            console.log('[TileSpriteGen] Generating tile textures...');
+        }
 
         const tiles = {
             // Walls
@@ -78,10 +80,14 @@ const TILE_SPRITE_GEN = {
                 scene.textures.remove(texKey);
             }
             scene.textures.addCanvas(texKey, canvas);
-            console.log(`[TileSpriteGen] ${texKey} created`);
+            if (CONFIG.DEBUG) {
+                console.log(`[TileSpriteGen] ${texKey} created`);
+            }
         }
 
-        console.log('[TileSpriteGen] All tile textures generated.');
+        if (CONFIG.DEBUG) {
+            console.log('[TileSpriteGen] All tile textures generated.');
+        }
     },
 
     // ── Helpers ──
