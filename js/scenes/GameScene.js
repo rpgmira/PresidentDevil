@@ -8,6 +8,7 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        this._shuttingDown = false;
         this.events.once('shutdown', this.shutdown, this);
 
         // Generate dungeon
@@ -722,6 +723,11 @@ class GameScene extends Phaser.Scene {
                         this.player.keys--;
                         door.open = true;
                         door.type = 'normal';
+                        if (sprite.setTexture) {
+                            sprite.setTexture(TILE_SPRITE_GEN.getDoorTextureKey(door.type));
+                        } else if (sprite.setFillStyle) {
+                            sprite.setFillStyle(0x44AA44);
+                        }
                         this._applyDoorOpenVisual(sprite, '[OPEN]');
                         AUDIO.playDoorOpen();
                     }
