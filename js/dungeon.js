@@ -177,23 +177,29 @@ class Dungeon {
 
     _placeDoors() {
         this.doors = [];
-        console.log('=== PLACING DOORS ===');
-        console.log(`Dungeon size: ${this.width}x${this.height}`);
-        console.log(`Rooms: ${this.rooms.length}`);
+        if (CONFIG.DEBUG) {
+            console.log('=== PLACING DOORS ===');
+            console.log(`Dungeon size: ${this.width}x${this.height}`);
+            console.log(`Rooms: ${this.rooms.length}`);
+        }
         
         // Only place doors at actual room entrances
         for (const room of this.rooms) {
             this._createDoorsForRoom(room);
         }
         
-        console.log(`Total doors created: ${this.doors.length}`);
-        this.doors.forEach((door, i) => {
-            console.log(`Door ${i}: (${door.x}, ${door.y}) type: ${door.type} room: ${door.room ? door.room.type : 'none'}`);
-        });
+        if (CONFIG.DEBUG) {
+            console.log(`Total doors created: ${this.doors.length}`);
+            this.doors.forEach((door, i) => {
+                console.log(`Door ${i}: (${door.x}, ${door.y}) type: ${door.type} room: ${door.room ? door.room.type : 'none'}`);
+            });
+        }
         
         // If we don't have enough doors, create some basic ones
         if (this.doors.length < 2) {
-            console.log('Not enough doors, creating additional ones...');
+            if (CONFIG.DEBUG) {
+                console.log('Not enough doors, creating additional ones...');
+            }
             this._createFallbackDoors();
         }
     }
@@ -234,7 +240,9 @@ class Dungeon {
                             room: room
                         });
                         this.tiles[edge.y][edge.x].door = true;
-                        console.log(`Door created at (${edge.x}, ${edge.y}) for ${room.type} room`);
+                        if (CONFIG.DEBUG) {
+                            console.log(`Door created at (${edge.x}, ${edge.y}) for ${room.type} room`);
+                        }
                         doorCreated = true;
                         break; // Only create one door per room
                     }
@@ -243,7 +251,9 @@ class Dungeon {
         }
         
         if (!doorCreated && (room.type === 'boss' || room.type === 'locked')) {
-            console.log(`Warning: Could not create door for ${room.type} room`);
+            if (CONFIG.DEBUG) {
+                console.log(`Warning: Could not create door for ${room.type} room`);
+            }
         }
     }
 
@@ -278,7 +288,9 @@ class Dungeon {
                                             room: room
                                         });
                                         this.tiles[y][x].door = true;
-                                        console.log(`Fallback door created at (${x}, ${y}) for ${room.type} room`);
+                                        if (CONFIG.DEBUG) {
+                                            console.log(`Fallback door created at (${x}, ${y}) for ${room.type} room`);
+                                        }
                                         return; // Only create one door per room
                                     }
                                 }
@@ -291,7 +303,9 @@ class Dungeon {
     }
 
     _ensureCriticalDoors() {
-        console.log('=== ENSURING CRITICAL DOORS ===');
+        if (CONFIG.DEBUG) {
+            console.log('=== ENSURING CRITICAL DOORS ===');
+        }
         
         // Ensure boss room has a locked door
         const bossRoom = this.rooms.find(r => r.type === 'boss');
@@ -307,11 +321,15 @@ class Dungeon {
             }
         }
         
-        console.log(`After ensuring critical doors: ${this.doors.length} total doors`);
+        if (CONFIG.DEBUG) {
+            console.log(`After ensuring critical doors: ${this.doors.length} total doors`);
+        }
     }
 
     _forceCreateDoorForRoom(room, doorType) {
-        console.log(`Force creating ${doorType} door for ${room.type} room...`);
+        if (CONFIG.DEBUG) {
+            console.log(`Force creating ${doorType} door for ${room.type} room...`);
+        }
         
         // Look around the perimeter of the room for corridor tiles
         const perimeter = [];
@@ -344,14 +362,18 @@ class Dungeon {
                             room: room
                         });
                         this.tiles[pos.y][pos.x].door = true;
-                        console.log(`Force created ${doorType} door at (${pos.x}, ${pos.y}) for ${room.type} room`);
+                        if (CONFIG.DEBUG) {
+                            console.log(`Force created ${doorType} door at (${pos.x}, ${pos.y}) for ${room.type} room`);
+                        }
                         return true;
                     }
                 }
             }
         }
         
-        console.log(`Could not force create door for ${room.type} room`);
+        if (CONFIG.DEBUG) {
+            console.log(`Could not force create door for ${room.type} room`);
+        }
         return false;
     }
 
@@ -426,7 +448,9 @@ class Dungeon {
 
     _placeItems() {
         this.itemSpawns = [];
-        console.log('=== PLACING ITEMS ===');
+        if (CONFIG.DEBUG) {
+            console.log('=== PLACING ITEMS ===');
+        }
         
         const scavengerBonus = META.getScavengerBonus(); // 0, 0.15, or 0.30
         const placeKeyBeforeRoom = (room) => {
@@ -503,14 +527,16 @@ class Dungeon {
         }
         
         // Log weapon generation statistics
-        console.log('WEAPON GENERATION STATS:');
-        console.log('- Pistol/Handgun:', weaponStats.handgun);
-        console.log('- Shotgun:', weaponStats.shotgun);
-        console.log('- Crossbow:', weaponStats.crossbow);
-        console.log('- Knife:', weaponStats.knife);
-        console.log('- Baseball Bat:', weaponStats.bat);
-        console.log('- Chainsaw:', weaponStats.chainsaw);
-        console.log(`Total items spawned: ${this.itemSpawns.length}`);
+        if (CONFIG.DEBUG) {
+            console.log('WEAPON GENERATION STATS:');
+            console.log('- Pistol/Handgun:', weaponStats.handgun);
+            console.log('- Shotgun:', weaponStats.shotgun);
+            console.log('- Crossbow:', weaponStats.crossbow);
+            console.log('- Knife:', weaponStats.knife);
+            console.log('- Baseball Bat:', weaponStats.bat);
+            console.log('- Chainsaw:', weaponStats.chainsaw);
+            console.log(`Total items spawned: ${this.itemSpawns.length}`);
+        }
     }
 
     getTile(x, y) {

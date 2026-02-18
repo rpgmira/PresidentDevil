@@ -8,6 +8,9 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        this._shuttingDown = false;
+        this.events.once('shutdown', this.shutdown, this);
+
         // Generate dungeon
         this.dungeon = new Dungeon();
         this.dungeon.generate();
@@ -41,6 +44,7 @@ class GameScene extends Phaser.Scene {
         // Camera follow
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
         this.cameras.main.setZoom(CONFIG.SCALE);
+        this.cameras.main.setBounds(0, 0, worldW, worldH);
         this.cameras.main.setBackgroundColor('#000000');
 
         // PointLight for atmospheric flashlight effect (GPU-accelerated)
@@ -96,6 +100,7 @@ class GameScene extends Phaser.Scene {
 
         // Furniture sprites
         this.furnitureSprites = [];
+        this.blockingFurnitureGroup = this.physics.add.staticGroup();
         this._createFurnitureSprites();
 
         // Panic event state
@@ -111,13 +116,15 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('HUDScene');
 
         // Debug indicator - simplified
-        this.add.text(10, 10, 'DEBUG: Doors visible', {
-            fontSize: '10px',
-            fill: '#ffff00',
-            fontFamily: 'monospace',
-            backgroundColor: '#000044',
-            padding: { x: 2, y: 1 }
-        }).setDepth(100).setScrollFactor(0);
+        if (CONFIG.DEBUG) {
+            this.add.text(10, 10, 'DEBUG: Doors visible', {
+                fontSize: '10px',
+                fill: '#ffff00',
+                fontFamily: 'monospace',
+                backgroundColor: '#000044',
+                padding: { x: 2, y: 1 }
+            }).setDepth(100).setScrollFactor(0);
+        }
 
         // Flickering light
         this.flickerOffset = 0;
@@ -493,7 +500,9 @@ class GameScene extends Phaser.Scene {
     }
 
     _createDoorSprites() {
-        console.log('Creating door sprites for', this.dungeon.doors.length, 'doors');
+        if (CONFIG.DEBUG) {
+            console.log('Creating door sprites for', this.dungeon.doors.length, 'doors');
+        }
         
         for (const door of this.dungeon.doors) {
             const px = door.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
@@ -524,18 +533,30 @@ class GameScene extends Phaser.Scene {
             else if (door.type === 'sealed') labelText = '❌';
             else labelText = '➤';
             
-            sprite.setData('label', this._createWorldLabel(px, py - 12, labelText, '#ffdd88'));
-            
-            // Make all doors visible for debugging
-            sprite.setVisible(true);
+            const label = this._createWorldLabel(px, py - 12, labelText, '#ffdd88');
+            sprite.setData('label', label);
+
+            // In normal mode only show closed doors; in debug mode show all
+            const showDoor = CONFIG.DEBUG ? true : !door.open;
+            sprite.setVisible(showDoor);
+            label.setVisible(showDoor);
             // If door is open, make it semi-transparent
             if (door.open) {
                 sprite.setAlpha(0.6);
-                sprite.setTint(0x88ff88); // Green tint for open doors
+                if (typeof sprite.setTint === 'function') {
+                    sprite.setTint(0x88ff88); // Green tint for open doors (sprites)
+                } else if (typeof sprite.setFillStyle === 'function') {
+                    sprite.setFillStyle(0x88ff88); // Green fill for open doors (rectangles)
+                    if (typeof sprite.setStrokeStyle === 'function') {
+                        sprite.setStrokeStyle(2, 0xFFFFFF);
+                    }
+                }
             }
             this.doorSprites.push(sprite);
-            
-            console.log(`Door sprite created at (${door.x}, ${door.y}) type: ${door.type}`);
+
+            if (CONFIG.DEBUG) {
+                console.log(`Door sprite created at (${door.x}, ${door.y}) type: ${door.type}`);
+            }
         }
     }
 
@@ -559,14 +580,19 @@ class GameScene extends Phaser.Scene {
             
             // Add collision if it's a blocking piece of furniture
             if (this._isFurnitureBlocking(furniture.type)) {
-                this.physics.add.existing(sprite, true); // true = static body
-                sprite.body.setSize(CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
-                
-                // Add collision with player
-                this.physics.add.collider(this.player.sprite, sprite);
+                this.blockingFurnitureGroup.add(sprite);
+                if (sprite.body) {
+                    sprite.body.setSize(CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
+                    sprite.body.updateFromGameObject();
+                }
             }
             
             this.furnitureSprites.push(sprite);
+        }
+
+        // Single collider is cheaper than per-sprite colliders
+        if (this.blockingFurnitureGroup.getLength() > 0) {
+            this.furnitureCollider = this.physics.add.collider(this.player.sprite, this.blockingFurnitureGroup);
         }
     }
 
@@ -704,33 +730,26 @@ class GameScene extends Phaser.Scene {
                         this.player.keys--;
                         door.open = true;
                         door.type = 'normal';
-                        // Don't hide, just make semi-transparent and green
-                        sprite.setAlpha(0.5);
-                        sprite.setTint(0x88ff88);
+                        if (sprite.setTexture) {
+                            sprite.setTexture(TILE_SPRITE_GEN.getDoorTextureKey(door.type));
+                        } else if (sprite.setFillStyle) {
+                            sprite.setFillStyle(0x44AA44);
+                        }
+                        this._applyDoorOpenVisual(sprite, '[OPEN]');
                         AUDIO.playDoorOpen();
-                        const label = sprite.getData('label');
-                        if (label) label.setText('[OPEN]');
                     }
                 } else if (door.type === 'shortcut') {
                     // One-way: only opens from the source room side
                     const playerRoom = this.dungeon.getRoomAt(this.player.sprite.x, this.player.sprite.y);
                     if (playerRoom === door.sourceRoom || !door.sourceRoom) {
                         door.open = true;
-                        // Don't hide, just make semi-transparent and green
-                        sprite.setAlpha(0.5);
-                        sprite.setTint(0x88ff88);
+                        this._applyDoorOpenVisual(sprite, '[SHORTCUT]');
                         AUDIO.playDoorOpen();
-                        const label = sprite.getData('label');
-                        if (label) label.setText('[SHORTCUT]');
                     }
                 } else if (door.type === 'normal' && !door.room.doorsSealed) {
                     door.open = true;
-                    // Don't hide, just make semi-transparent and green
-                    sprite.setAlpha(0.5);
-                    sprite.setTint(0x88ff88);
+                    this._applyDoorOpenVisual(sprite, '[OPEN]');
                     AUDIO.playDoorOpen();
-                    const label = sprite.getData('label');
-                    if (label) label.setText('[OPEN]');
                 }
             }
         }
@@ -865,16 +884,12 @@ class GameScene extends Phaser.Scene {
             const door = sprite.getData('door');
             if (door.room === room) {
                 door.open = true;
-                // Don't hide, just make semi-transparent and green
-                sprite.setAlpha(0.5);
-                sprite.setTint(0x88ff88);
                 if (sprite.setTexture) {
                     sprite.setTexture(TILE_SPRITE_GEN.getDoorTextureKey(door.type));
                 } else if (sprite.setFillStyle) {
                     sprite.setFillStyle(CONFIG.COLORS.DOOR);
                 }
-                const label = sprite.getData('label');
-                if (label) label.setText('[OPEN]');
+                this._applyDoorOpenVisual(sprite, '[OPEN]');
             }
         }
 
@@ -1255,8 +1270,34 @@ class GameScene extends Phaser.Scene {
         return 'DOOR ➤';
     }
 
+    _applyDoorOpenVisual(sprite, openLabel) {
+        sprite.setAlpha(0.5);
+        if (typeof sprite.setTint === 'function') {
+            sprite.setTint(0x88ff88);
+        } else {
+            if (typeof sprite.setFillStyle === 'function') {
+                sprite.setFillStyle(0x88ff88);
+            }
+            if (typeof sprite.setStrokeStyle === 'function') {
+                sprite.setStrokeStyle(2, 0xFFFFFF);
+            }
+        }
+
+        const showDoor = CONFIG.DEBUG;
+        sprite.setVisible(showDoor);
+
+        const label = sprite.getData('label');
+        if (label) {
+            label.setText(openLabel);
+            label.setVisible(showDoor);
+        }
+    }
+
     // --- Cleanup on scene transition to prevent memory leaks ---
     shutdown() {
+        if (this._shuttingDown) return;
+        this._shuttingDown = true;
+
         // Clean up particles
         if (this.particles) this.particles.cleanup();
 
@@ -1292,6 +1333,16 @@ class GameScene extends Phaser.Scene {
                 if (sprite) sprite.destroy();
             }
             this.furnitureSprites = [];
+        }
+
+        if (this.furnitureCollider) {
+            this.furnitureCollider.destroy();
+            this.furnitureCollider = null;
+        }
+
+        if (this.blockingFurnitureGroup) {
+            this.blockingFurnitureGroup.destroy(false);
+            this.blockingFurnitureGroup = null;
         }
 
         // Clean up player label
